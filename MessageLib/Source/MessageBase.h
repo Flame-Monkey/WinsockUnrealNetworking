@@ -1,0 +1,7 @@
+namespace MesageLib
+{
+	struct MessageBase
+	{
+
+	};
+}
