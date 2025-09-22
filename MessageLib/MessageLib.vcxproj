@@ -40,13 +40,13 @@
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -117,6 +117,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -124,14 +125,25 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Source\MessageBase.h" />
+    <ClCompile Include="Source\ChattingMessage.cpp" />
+    <ClCompile Include="Source\FriendMessage.cpp" />
+    <ClCompile Include="Source\MessageManager.cpp" />
+    <ClCompile Include="Source\MessagePayloadBase.cpp" />
+    <ClCompile Include="Source\MessagePayloadBase.h" />
     <ClCompile Include="Source\MessageHeader.h" />
+    <ClCompile Include="Source\SystemMessage.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\BufferManager.h" />
+    <ClInclude Include="Source\ChattingMessage.h" />
+    <ClInclude Include="Source\FriendMessage.h" />
+    <ClInclude Include="Source\GroupMessage.h" />
+    <ClInclude Include="Source\Message.h" />
     <ClInclude Include="Source\MessageManager.h" />
+    <ClInclude Include="Source\SystemMessage.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="readme.MD" />
+    <None Include="README.md" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

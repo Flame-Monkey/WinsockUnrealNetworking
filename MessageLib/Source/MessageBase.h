@@ -1,7 +1,0 @@
-namespace MesageLib
-{
-	struct MessageBase
-	{
-
-	};
-}

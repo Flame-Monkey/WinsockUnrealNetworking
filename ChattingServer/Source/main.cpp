@@ -1,5 +1,5 @@
 #include <iostream>
-#include "MessageManager.h"
+#include "Message.h"
 
 int main()
 {
