@@ -125,6 +125,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Source\BufferManager.cpp" />
     <ClCompile Include="Source\ChattingMessage.cpp" />
     <ClCompile Include="Source\FriendMessage.cpp" />
     <ClCompile Include="Source\MessageManager.cpp" />

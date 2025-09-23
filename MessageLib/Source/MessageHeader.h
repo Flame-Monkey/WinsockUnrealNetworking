@@ -13,14 +13,13 @@ namespace Message
 	};
 
 	// 14 bytes
-#pragma pack(push, 1)
+	#pragma pack(push, 1)
 	struct MessageHeader
 	{
-	public:
 		long long TimeStamp;	// 8 bytes
 		unsigned int Length;	// 4 bytes
 		EMessageType Type;		// 1 byte
 		unsigned char Falgs;	// 1 byte
 	};
-#pragma pack(pop)
+	#pragma pack(pop)
 }
