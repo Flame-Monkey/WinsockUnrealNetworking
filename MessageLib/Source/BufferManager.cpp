@@ -26,7 +26,7 @@ void Message::BufferManager::Init(unsigned int MessageSize, unsigned int MaxMess
 		this->FreeBufferChannel[i].second = new std::mutex();
 	}
 	
-	for (int i = 0; i < MaxMessageSize; ++i)
+	for (unsigned int i = 0; i < MaxMessageSize; ++i)
 	{
 		int ChannelIndex = i % 10;
 		char* BufferAddress = this->Bufferpool + (i * MessageSize);
@@ -45,14 +45,14 @@ Message::BufferManager::~BufferManager()
 	}
 }
 
-bool Message::BufferManager::GetMessageBuffer(char*& outBuffer, int& outBufferSize, int channelIndex)
+bool Message::BufferManager::GetMessageBuffer(char*& outBuffer, unsigned int& outBufferSize, int channelIndex)
 {
 	if (channelIndex < 0)
 	{
 		return GetBufferCommon(outBuffer, outBufferSize);
 	}
 
-	if(!GetBufferByChannel(channelIndex, outBuffer, outBufferSize))
+	if(!GetBufferByChannel(outBuffer, outBufferSize, channelIndex))
 	{
 		return GetBufferCommon(outBuffer, outBufferSize);
 	}
@@ -60,11 +60,11 @@ bool Message::BufferManager::GetMessageBuffer(char*& outBuffer, int& outBufferSi
 }
 
 
-bool Message::BufferManager::GetBufferCommon(char*& outBuffer, int& outBufferSize)
+bool Message::BufferManager::GetBufferCommon(char*& outBuffer, unsigned int& outBufferSize)
 {
 	for (int i = 0; i < 10; ++i)
 	{
-		if(GetBufferByChannel(i, outBuffer, outBufferSize))
+		if(GetBufferByChannel(outBuffer, outBufferSize, i))
 		{
 			return true;
 		}
@@ -72,7 +72,7 @@ bool Message::BufferManager::GetBufferCommon(char*& outBuffer, int& outBufferSiz
 	return false;
 }
 
-bool Message::BufferManager::GetBufferByChannel(int channelIndex, char*& outBuffer, int& outBufferSize)
+bool Message::BufferManager::GetBufferByChannel(char*& outBuffer, unsigned int& outBufferSize, int channelIndex)
 {
 	if (channelIndex < 0 || channelIndex >= 10)
 	{
@@ -96,13 +96,14 @@ bool Message::BufferManager::ReleaseMessageBuffer(char* buffer)
 		return false;
 	}
 
-	int index = (buffer - Bufferpool) / MessageSize;
-	if (index >= MaxMessageSize || index < 0)
+	if (buffer - Bufferpool < 0 || buffer >= Bufferpool + MaxMessageSize * MessageSize)
 	{
 		return false;
 	}
 
-	int channelIndex = index % 10;
+	unsigned long long index = (buffer - Bufferpool) / MessageSize;
+
+	unsigned int channelIndex = index % 10;
 	auto& [stack, mtx] = FreeBufferChannel[channelIndex];
 
 	mtx->lock();
