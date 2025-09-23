@@ -16,17 +16,19 @@ namespace Message
 	{
 	private:
 		static BufferManager MessageBufferManager;
+		int ManagerID = -1;
 
 		ETransferState TransferState = ETransferState::Header;
 		char* Buffer = nullptr;
 		unsigned int BufferSize = 0;
-		unsigned int BufferOffset = 0;
 		unsigned int BufferDataLength = 0;
 		std::queue<struct Message*> MessageQueue;
 
+		unsigned int TransferByteToHeader(const char* data, unsigned int size);
+		unsigned int TransferByteToPayload(const char* data, unsigned int size);
 
 	public:
-		MessageManager(unsigned int MessageBufferSize = 0, unsigned int ManagerNum = 0);
+		MessageManager(int id, unsigned int MessageBufferSize = 0, unsigned int ManagerNum = 0);
 		~MessageManager();
 
 		void Init();

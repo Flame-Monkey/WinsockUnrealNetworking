@@ -9,6 +9,7 @@ namespace Message
 	{
 	private:
 		bool bInit = false;
+		unsigned int ReferenceCount = 0;
 
 		char* Bufferpool = nullptr;
 		unsigned int MessageSize = 192;
@@ -26,5 +27,7 @@ namespace Message
 		void Init(unsigned int MessageSize = 192, unsigned int MaxMessageSize = 10'000'000); // Default 2GB
 		bool GetMessageBuffer(char*& outBuffer, unsigned int& outBufferSize, int channelIndex = -1);
 		bool ReleaseMessageBuffer(char* buffer);
+
+		void ReleaseBufferManager();
 	};
 }

@@ -13,5 +13,9 @@ int main()
 
 	std::string input;
 	std::cin >> input;
-	std::cout << input;
+	std::cout << input << std::endl;
+
+	Message::MessageManager manager(0);
+	manager.Init();
+	while (true) {}
 }

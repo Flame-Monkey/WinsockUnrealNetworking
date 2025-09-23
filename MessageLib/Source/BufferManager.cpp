@@ -1,5 +1,5 @@
 ﻿#include "BufferManager.h"
-
+#include <iostream>
 Message::BufferManager::BufferManager():
 	bInit(false),
 	Bufferpool(nullptr),
@@ -11,6 +11,9 @@ Message::BufferManager::BufferManager():
 
 void Message::BufferManager::Init(unsigned int MessageSize, unsigned int MaxMessageSize)
 {
+	// 동시적으로 MessageManager를 생성하면, ReferenceCount 동시성 문제가 있음. Release에서도 마찬가지
+	// 어차피 메시지매니저의 각 메소드나, Init, Destroyer는 한 스레드씩에서 호출돼 동시성 문제 없을거같긴한데
+	ReferenceCount++;
 	if (bInit)
 	{
 		return;
@@ -19,6 +22,8 @@ void Message::BufferManager::Init(unsigned int MessageSize, unsigned int MaxMess
 	this->MaxMessageSize = MaxMessageSize;
 	this->TotalBufferSize = MessageSize * MaxMessageSize;
 	this->Bufferpool = new char[TotalBufferSize];
+	std::cout << "BufferManager::Init() - Allocated " << TotalBufferSize << " bytes for buffer pool." << std::endl;
+	std::cout << "Message Size: " << MessageSize << ", Max Message Count: " << MaxMessageSize << std::endl;
 
 	for (int i = 0; i < 10; ++i)
 	{
@@ -36,9 +41,30 @@ void Message::BufferManager::Init(unsigned int MessageSize, unsigned int MaxMess
 	bInit = true;
 }
 
+void Message::BufferManager::ReleaseBufferManager()
+{
+	ReferenceCount--;
+	if (ReferenceCount <= 0)
+	{
+		ReferenceCount = 0;
+		bInit = false;
+		delete[] Bufferpool;
+		Bufferpool = nullptr;
+		for (int i = 0; i < 10; ++i)
+		{
+			while (!FreeBufferChannel[i].first.empty())
+			{
+				FreeBufferChannel[i].first.pop();
+			}
+			delete FreeBufferChannel[i].second;
+			FreeBufferChannel[i].second = nullptr;
+		}
+	}
+}
+
 Message::BufferManager::~BufferManager()
 {
-	delete Bufferpool;
+	delete[] Bufferpool;
 	for (int i = 0; i < 10; ++i)
 	{
 		delete FreeBufferChannel[i].second;
@@ -81,7 +107,11 @@ bool Message::BufferManager::GetBufferByChannel(char*& outBuffer, unsigned int& 
 
 	auto& [stack, mtx] = FreeBufferChannel[channelIndex];
 	mtx->lock();
-	// stack이 비어있으면 어쩔, 세마포어로 교체(release에서 signal)
+	if (stack.empty())
+	{
+		mtx->unlock();
+		return false;
+	}
 	outBuffer = stack.top();
 	stack.pop();
 	mtx->unlock();
