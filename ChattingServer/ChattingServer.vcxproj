@@ -129,7 +129,7 @@
     <ClCompile Include="Source\ChattingServer.cpp" />
     <ClCompile Include="Source\main.cpp" />
     <ClCompile Include="Source\MessageHandler.cpp" />
-    <ClCompile Include="Source\SocketToken.cpp" />
+    <ClCompile Include="Source\SocketManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\MessageLib\MessageLib.vcxproj">
@@ -142,7 +142,7 @@
   <ItemGroup>
     <ClInclude Include="Source\ChattingServer.h" />
     <ClInclude Include="Source\MessageHandler.h" />
-    <ClInclude Include="Source\SocketToken.h" />
+    <ClInclude Include="Source\SocketManager.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

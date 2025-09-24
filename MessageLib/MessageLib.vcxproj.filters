@@ -7,16 +7,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Source\MessagePayloadBase.h">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\MessageHeader.h">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Source\ChattingMessage.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\MessagePayloadBase.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Source\FriendMessage.cpp">
@@ -31,12 +22,12 @@
     <ClCompile Include="Source\BufferManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Source\StructMessage.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\MessageManager.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Message.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="Source\ChattingMessage.h">
@@ -52,6 +43,9 @@
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="Source\BufferManager.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\StructMessage.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

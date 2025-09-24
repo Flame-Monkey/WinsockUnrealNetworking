@@ -1,31 +1,24 @@
 ﻿#include "BufferManager.h"
 #include <iostream>
-Message::BufferManager::BufferManager():
-	bInit(false),
+Message::BufferManager::BufferManager(unsigned int messageSize, unsigned int maxMessageSize,
+	unsigned long long channelSize):
 	Bufferpool(nullptr),
-	MessageSize(192),
-	MaxMessageSize(10'000'000),
-	TotalBufferSize(MessageSize * MaxMessageSize)
+	MessageBufferSize(messageSize),
+	MaxMessageSize(maxMessageSize),
+	TotalBufferSize(messageSize * maxMessageSize),
+	ChannelSize(channelSize),
+	FreeBufferChannel(nullptr)
 {
 }
 
-void Message::BufferManager::Init(unsigned int MessageSize, unsigned int MaxMessageSize)
+void Message::BufferManager::Init()
 {
-	// 동시적으로 MessageManager를 생성하면, ReferenceCount 동시성 문제가 있음. Release에서도 마찬가지
-	// 어차피 메시지매니저의 각 메소드나, Init, Destroyer는 한 스레드씩에서 호출돼 동시성 문제 없을거같긴한데
-	ReferenceCount++;
-	if (bInit)
-	{
-		return;
-	}
-	this->MessageSize = MessageSize;
-	this->MaxMessageSize = MaxMessageSize;
-	this->TotalBufferSize = MessageSize * MaxMessageSize;
 	this->Bufferpool = new char[TotalBufferSize];
 	std::cout << "BufferManager::Init() - Allocated " << TotalBufferSize << " bytes for buffer pool." << std::endl;
-	std::cout << "Message Size: " << MessageSize << ", Max Message Count: " << MaxMessageSize << std::endl;
+	std::cout << "Message Size: " << MessageBufferSize << ", Max Message Count: " << MaxMessageSize << std::endl;
 
-	for (int i = 0; i < 10; ++i)
+	FreeBufferChannel = new std::pair<std::stack<char*>, std::mutex*>[ChannelSize];
+	for (int i = 0; i < ChannelSize; ++i)
 	{
 		this->FreeBufferChannel[i].first = std::stack<char*>();
 		this->FreeBufferChannel[i].second = new std::mutex();
@@ -34,31 +27,8 @@ void Message::BufferManager::Init(unsigned int MessageSize, unsigned int MaxMess
 	for (unsigned int i = 0; i < MaxMessageSize; ++i)
 	{
 		int ChannelIndex = i % 10;
-		char* BufferAddress = this->Bufferpool + (i * MessageSize);
+		char* BufferAddress = this->Bufferpool + (i * MessageBufferSize);
 		this->FreeBufferChannel[ChannelIndex].first.push(BufferAddress);
-	}
-
-	bInit = true;
-}
-
-void Message::BufferManager::ReleaseBufferManager()
-{
-	ReferenceCount--;
-	if (ReferenceCount <= 0)
-	{
-		ReferenceCount = 0;
-		bInit = false;
-		delete[] Bufferpool;
-		Bufferpool = nullptr;
-		for (int i = 0; i < 10; ++i)
-		{
-			while (!FreeBufferChannel[i].first.empty())
-			{
-				FreeBufferChannel[i].first.pop();
-			}
-			delete FreeBufferChannel[i].second;
-			FreeBufferChannel[i].second = nullptr;
-		}
 	}
 }
 
@@ -69,10 +39,12 @@ Message::BufferManager::~BufferManager()
 	{
 		delete FreeBufferChannel[i].second;
 	}
+	std::cout << "BufferManager::~BufferManager() - Released buffer pool." << std::endl;
 }
 
 bool Message::BufferManager::GetMessageBuffer(char*& outBuffer, unsigned int& outBufferSize, int channelIndex)
 {
+	channelIndex = channelIndex % ChannelSize;
 	if (channelIndex < 0)
 	{
 		return GetBufferCommon(outBuffer, outBufferSize);
@@ -126,12 +98,12 @@ bool Message::BufferManager::ReleaseMessageBuffer(char* buffer)
 		return false;
 	}
 
-	if (buffer - Bufferpool < 0 || buffer >= Bufferpool + MaxMessageSize * MessageSize)
+	if (buffer - Bufferpool < 0 || buffer >= Bufferpool + MaxMessageSize * MessageBufferSize)
 	{
 		return false;
 	}
 
-	unsigned long long index = (buffer - Bufferpool) / MessageSize;
+	unsigned long long index = (buffer - Bufferpool) / MessageBufferSize;
 
 	unsigned int channelIndex = index % 10;
 	auto& [stack, mtx] = FreeBufferChannel[channelIndex];
@@ -140,4 +112,25 @@ bool Message::BufferManager::ReleaseMessageBuffer(char* buffer)
 	stack.push(buffer);
 	mtx->unlock();
 	return true;
+}
+
+unsigned long long Message::BufferManager::GetAvailableBufferCount()
+{
+	unsigned long long total = 0;
+	for (int i = 0; i < 10; ++i)
+	{
+		total += FreeBufferChannel[i].first.size();
+	}
+
+	return total;
+}
+
+void Message::BufferManager::TestBufferwrite()
+{
+	std::cout << "BufferManager::TestBufferwrite() - Writing test pattern to buffer pool." << std::endl;
+	for(unsigned int i = 0; i < TotalBufferSize; ++i)
+	{
+		Bufferpool[i] = 'A' + (i % 26);
+	}
+	std::cout << "Is this using Memory Size: " << TotalBufferSize << " bytes?" << std::endl;
 }

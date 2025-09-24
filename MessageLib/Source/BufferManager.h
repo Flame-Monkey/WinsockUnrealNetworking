@@ -8,26 +8,28 @@ namespace Message
 	class BufferManager
 	{
 	private:
-		bool bInit = false;
-		unsigned int ReferenceCount = 0;
-
 		char* Bufferpool = nullptr;
-		unsigned int MessageSize = 192;
-		unsigned int MaxMessageSize = 10'000'000;
-		unsigned int TotalBufferSize = 0;
+		const unsigned int MessageBufferSize;
+		const unsigned int MaxMessageSize;
+		const unsigned int TotalBufferSize;
 
-		std::pair<std::stack<char*>, std::mutex*> FreeBufferChannel[10];
+		unsigned long long ChannelSize;
+
+		std::pair<std::stack<char*>, std::mutex*> *FreeBufferChannel;
 
 		bool GetBufferCommon(char*& outBuffer, unsigned int& outBufferSize);
 		bool GetBufferByChannel(char*& outBuffer, unsigned int& outBufferSize, int channelIndex);
 
 	public:
-		BufferManager();
+		BufferManager(unsigned int messageSize = 192, unsigned int maxMessageSize = 10'000'000, 
+			unsigned long long channelSize = 10);
 		~BufferManager();
-		void Init(unsigned int MessageSize = 192, unsigned int MaxMessageSize = 10'000'000); // Default 2GB
+		void Init(); // Default 2GB
 		bool GetMessageBuffer(char*& outBuffer, unsigned int& outBufferSize, int channelIndex = -1);
 		bool ReleaseMessageBuffer(char* buffer);
 
-		void ReleaseBufferManager();
+		unsigned long long GetAvailableBufferCount();
+
+		void TestBufferwrite();
 	};
 }

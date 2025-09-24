@@ -1,8 +1,9 @@
 #pragma once
 
 #include <queue>
-#include "Message.h"
+#include <mutex>
 #include "BufferManager.h"
+#include "StructMessage.h"
 
 namespace Message
 {
@@ -15,25 +16,26 @@ namespace Message
 	class MessageManager
 	{
 	private:
-		static BufferManager MessageBufferManager;
+		BufferManager* MessageBufferManager;
 		int ManagerID = -1;
+		std::mutex QueueMutex;
 
 		ETransferState TransferState = ETransferState::Header;
 		char* Buffer = nullptr;
 		unsigned int BufferSize = 0;
 		unsigned int BufferDataLength = 0;
-		std::queue<struct Message*> MessageQueue;
+		std::queue<char*> MessageQueue;
 
 		unsigned int TransferByteToHeader(const char* data, unsigned int size);
 		unsigned int TransferByteToPayload(const char* data, unsigned int size);
-
 	public:
-		MessageManager(int id, unsigned int MessageBufferSize = 0, unsigned int ManagerNum = 0);
+		MessageManager(BufferManager* manager, int id);
 		~MessageManager();
 
-		void Init();
 		bool TransferByte(const char* data, unsigned int size);
 		struct Message* GetMessage();
-		void ReleaseMessage(struct Message* message);
+		void ReleaseMessageBuffer(char* buffer);
+
+		bool GetSendBuffer(MessagePayload payload, EPayloadType type,char*& outMessageBuffer, unsigned long long &outMessageLength);
 	};
 }

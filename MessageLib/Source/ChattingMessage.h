@@ -1,6 +1,5 @@
 #pragma once
 #include <string>
-#include "MessagePayloadBase.h"
 
 namespace Message
 {
@@ -17,19 +16,13 @@ namespace Message
 
 	// 151 bytes
 	#pragma pack(push, 1)
-	struct ChattingMessage : public MessagePayloadBase
+	struct ChattingMessage
 	{
 	public:
 		EChattingMessageType Type;	// 1 byte
 		char Sender[25];			// 25 bytes
 		char Receiver[25]; 			// 25 bytes
 		char Message[100];			// 100 bytes
-
-		ChattingMessage(std::string payload = "");
-		~ChattingMessage();
-		unsigned int Size();
-		void Serialize(char* data);
-		void Deserialize(const char* data, unsigned int size);
 	};
 	#pragma pack(pop)
 }

@@ -1,7 +1,5 @@
 #pragma once
 
-#include "MessagePayloadBase.h"
-
 namespace Message
 {
 	enum class EGroupMessageType : unsigned char
@@ -13,18 +11,11 @@ namespace Message
 		None = 0xff,
 	};
 
-	struct GroupMessage : public MessagePayloadBase
+	struct GroupMessage
 	{
-	public:
 		EGroupMessageType Type;	// 1 byte
 		char GroupName[25];		// 25 bytes
 		char Sender[25];		// 25 bytes
 		char Receiver[25]; 		// 25 bytes
-
-		GroupMessage();
-		~GroupMessage();
-		unsigned int Size();
-		void Serialize(char* data);
-		void Deserialize(const char* data, unsigned int size);
 	};
 }

@@ -1,7 +1,5 @@
 #pragma once
 
-#include "MessagePayloadBase.h"
-
 namespace Message
 {
 	enum class ESystemMessageType : unsigned char
@@ -10,19 +8,12 @@ namespace Message
 		None = 0xff,
 	};
 
-	// 15 bytes
+	// 101 bytes
 	#pragma pack(push, 1)
-	struct SystemMessage : public MessagePayloadBase
+	struct SystemMessage
 	{
-	public:
-
 		ESystemMessageType Type;	// 1 byte
-		char Payload[200];			// 200 bytes
-		SystemMessage();
-		~SystemMessage();
-		unsigned int Size();
-		void Serialize(char* data);
-		void Deserialize(const char* data, unsigned int size);
+		char Payload[100];			// 100 bytes
 	};
 #pragma pack(pop)
 }
