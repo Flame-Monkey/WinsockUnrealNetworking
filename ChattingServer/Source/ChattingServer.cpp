@@ -122,8 +122,7 @@ void ChattingServer::CompleteRecv(SocketContext* context, int bytesTransffered)
 	{
 		return;
 	}
-	
-	
+
 	context->Manager->ProcessRecv(bytesTransffered);
 
 	StartRecv(context);

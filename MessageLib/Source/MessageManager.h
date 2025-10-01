@@ -32,8 +32,10 @@ namespace Message
 		MessageManager(BufferManager* manager, int id);
 		~MessageManager();
 
+		void Init();
+
 		bool TransferByte(const char* data, unsigned int size);
-		struct Message* GetMessage();
+		bool GetQueuedMessage(StructMessage*& outMessage);
 		void ReleaseMessageBuffer(char* buffer);
 
 		bool GetSendBuffer(MessagePayload payload, EPayloadType type,char*& outMessageBuffer, unsigned long long &outMessageLength);

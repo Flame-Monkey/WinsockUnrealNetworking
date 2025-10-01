@@ -24,7 +24,7 @@ int main()
 	std::string input;
 	while (true)
 	{
-		std::cin >> input;
+		std::getline(std::cin, input);
 		if (!std::cin.eof())
 		{
 			client.SendChat(input);

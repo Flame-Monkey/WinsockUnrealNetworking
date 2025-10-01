@@ -1,6 +1,7 @@
 #include "ChattingClient.h"
 #include "ChattingMessage.h"
 #include <iostream>
+#include <chrono>
 
 ChattingClient::ChattingClient() :
 	WSAData(), Socket(0), CompletePort(0), Addr(), MessageQueue(), 
@@ -13,6 +14,8 @@ ChattingClient::ChattingClient() :
 void ChattingClient::Init()
 {
 	MessageBufferManager.Init();
+	MessageManager.Init();
+
 	MessageBufferManager.TestBufferwrite();
 
 	if (WSAStartup(MAKEWORD(2, 2), &WSAData))
@@ -60,9 +63,6 @@ void ChattingClient::Connect(std::string ipaddress, short portnum)
 		exit(-1);
 	}
 	StartRecv();
-	std::thread worker([this]() {
-		this->WorkerThread();
-	});
 }
 
 void ChattingClient::WorkerThread()
@@ -127,14 +127,41 @@ Message::StructMessage ChattingClient::GetQueuedMessage()
 
 void ChattingClient::SendChat(std::string chat)
 {
-	std::copy(chat.c_str(), chat.c_str() + chat.length(), SendBuffer);
-	SendContext.DataBuf->len = chat.length();
+	//std::copy(chat.c_str(), chat.c_str() + chat.length(), SendBuffer);
+	//SendContext.DataBuf->len = chat.length();
+	//if (WSASend(Socket, SendContext.DataBuf, 1, NULL,
+	//	0, &SendContext.Overlapped, NULL) == SOCKET_ERROR && WSAGetLastError() != ERROR_IO_PENDING)
+	//{
+	//			std::cerr << "WSASend() Error: " << WSAGetLastError() << std::endl;
+	//	return;
+	//}
+
+	Message::StructMessage chattingMessage;
+	Message::ChattingMessage c;
+	for (int i = 0; i < 100; ++i)
+	{
+		c.Message[i] = '0';
+	}
+	std::copy(chat.c_str(), chat.c_str() + chat.length(), c.Message);
+	c.Receiver[0] = '1';
+	c.Sender[0] = '0';
+	c.Type = Message::EChattingMessageType::All;
+	chattingMessage.payload.chatting = c;
+	chattingMessage.Type = Message::EPayloadType::Chatting;
+	chattingMessage.header.PayloadLength = 152;
+	chattingMessage.header.Flags = 0;
+	auto now = std::chrono::system_clock::now();
+	chattingMessage.header.TimeStamp = std::chrono::duration_cast<std::chrono::milliseconds>(
+		now.time_since_epoch()
+	).count();
+	chattingMessage.header.Type = Message::EMessageType::StructMessage;
+
+	std::copy((char*) & chattingMessage, (char*)&chattingMessage + 166, SendBuffer);
+	SendContext.DataBuf->len = 166;
 	if (WSASend(Socket, SendContext.DataBuf, 1, NULL,
 		0, &SendContext.Overlapped, NULL) == SOCKET_ERROR && WSAGetLastError() != ERROR_IO_PENDING)
 	{
-				std::cerr << "WSASend() Error: " << WSAGetLastError() << std::endl;
+		std::cerr << "WSASend() Error: " << WSAGetLastError() << std::endl;
 		return;
 	}
-
-	Message::ChattingMessage chattingMessage;
 }

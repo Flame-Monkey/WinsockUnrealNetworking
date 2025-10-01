@@ -9,11 +9,6 @@ Message::MessageManager::MessageManager(BufferManager* manager, int id):
     BufferDataLength(0),
     QueueMutex()
 {
-    if (!MessageBufferManager->GetMessageBuffer(Buffer, BufferSize, ManagerID))
-    {
-		std::cerr << "MessageManager::MessageManager() - Failed to get message buffer from BufferManager." << std::endl;
-        exit(1);
-    }
 }
 
 Message::MessageManager::~MessageManager()
@@ -22,6 +17,15 @@ Message::MessageManager::~MessageManager()
     {
         ReleaseMessageBuffer(MessageQueue.front());
         MessageQueue.pop();
+    }
+}
+
+void Message::MessageManager::Init()
+{
+    if (!MessageBufferManager->GetMessageBuffer(Buffer, BufferSize, ManagerID))
+    {
+        std::cerr << "MessageManager::MessageManager() - Failed to get message buffer from BufferManager." << std::endl;
+        exit(1);
     }
 }
 
@@ -90,14 +94,20 @@ unsigned int Message::MessageManager::TransferByteToPayload(const char* data, un
     return transfer;
 }
 
-struct Message::Message* Message::MessageManager::GetMessage()
+bool Message::MessageManager::GetQueuedMessage(StructMessage*& outMessage)
 {
 	QueueMutex.lock();
+    if (MessageQueue.empty())
+    {
+        QueueMutex.unlock();
+        return false;
+    }
     char* message = MessageQueue.front();
     MessageQueue.pop();
 	QueueMutex.unlock();
 
-	return reinterpret_cast<Message*>(message);
+    outMessage = (StructMessage*)message;
+    return true;
 }
 
 void Message::MessageManager::ReleaseMessageBuffer(char* buffer)

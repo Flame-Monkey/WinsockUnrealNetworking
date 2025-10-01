@@ -2,6 +2,7 @@
 
 #include "ChattingServer.h"
 #include "MessageManager.h"
+#include <queue>
 
 class ChattingServer;
 struct SocketContext;
@@ -21,6 +22,7 @@ public:
 	char* RecvBuffer;
 	char* SendBuffer;
 	unsigned long BufferLength = 1000;
+	std::queue<Message::StructMessage*> MessageQueue;
 
 	SocketManager(ChattingServer* server, Message::BufferManager* bufferManager, int id);
 	~SocketManager() = default;

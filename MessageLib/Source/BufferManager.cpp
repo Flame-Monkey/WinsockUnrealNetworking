@@ -77,6 +77,7 @@ bool Message::BufferManager::GetBufferByChannel(char*& outBuffer, unsigned int& 
 		return false;
 	}
 	auto& [stack, mtx] = FreeBufferChannel[channelIndex];
+
 	mtx->lock();
 
 	if (stack.empty())

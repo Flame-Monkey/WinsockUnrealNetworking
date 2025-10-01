@@ -1,12 +1,13 @@
 #include "SocketManager.h"
 #include <iostream>
 
-SocketManager::SocketManager(ChattingServer* server, Message::BufferManager* bufferManager, int id):
+SocketManager::SocketManager(ChattingServer* server, Message::BufferManager* bufferManager, int id) :
 	Id(id),
 	Socket(INVALID_SOCKET),
 	Server(server),
-	MessageBufferManager(bufferManager), MessageManager(bufferManager, id), 
-	SendContext(nullptr), RecvContext(nullptr), SendBuffer(nullptr), RecvBuffer(nullptr)
+	MessageBufferManager(bufferManager), MessageManager(bufferManager, id),
+	SendContext(nullptr), RecvContext(nullptr), SendBuffer(nullptr), RecvBuffer(nullptr),
+	MessageQueue()
 {
 }
 
@@ -32,6 +33,8 @@ void SocketManager::Init()
 	RecvContext->DataBuf->len = BufferLength;
 	RecvContext->LastOp = ESocketOperation::Recv;
 	RecvContext->Manager = this;
+
+	MessageManager.Init();
 }
 
 void SocketManager::SetSocket(SOCKET socket)
@@ -45,12 +48,23 @@ void SocketManager::ProcessRecv(int Transffered)
 {
 	for (int i = 0; i < Transffered; ++i)
 	{
-		printf("%02x ", RecvContext->DataBuf->buf[i]);
+		printf("%02x", RecvContext->DataBuf->buf[i]);
 	}
 	printf("\n");
 
-	//if (MessageManager.TransferByte(RecvContext->DataBuf->buf, Transffered))
-	//{
-	//	Message::Message* message = MessageManager.GetMessageW();
-	//}
+	if (MessageManager.TransferByte(RecvContext->DataBuf->buf, Transffered))
+	{
+		Message::StructMessage* message;
+		while (MessageManager.GetQueuedMessage(message))
+		{
+			MessageQueue.push(message);
+			std::cout << "Message Parse Completed!!\n";
+			if (message->Type == Message::EPayloadType::Chatting)
+			{
+				std::cout << "WOW!!\n";
+
+				std::cout << message->payload.chatting.Message << std::endl;
+			}
+		}
+	}
 }
