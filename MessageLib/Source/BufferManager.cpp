@@ -26,7 +26,7 @@ void Message::BufferManager::Init()
 	
 	for (unsigned int i = 0; i < MaxMessageSize; ++i)
 	{
-		int ChannelIndex = i % 10;
+		int ChannelIndex = i % ChannelSize;
 		char* BufferAddress = this->Bufferpool + (i * MessageBufferSize);
 		this->FreeBufferChannel[ChannelIndex].first.push(BufferAddress);
 	}
@@ -60,7 +60,7 @@ bool Message::BufferManager::GetMessageBuffer(char*& outBuffer, unsigned int& ou
 
 bool Message::BufferManager::GetBufferCommon(char*& outBuffer, unsigned int& outBufferSize)
 {
-	for (int i = 0; i < 10; ++i)
+	for (int i = 0; i < ChannelSize; ++i)
 	{
 		if(GetBufferByChannel(outBuffer, outBufferSize, i))
 		{
@@ -106,7 +106,7 @@ bool Message::BufferManager::ReleaseMessageBuffer(char* buffer)
 
 	unsigned long long index = (buffer - Bufferpool) / MessageBufferSize;
 
-	unsigned int channelIndex = index % 10;
+	unsigned int channelIndex = index % ChannelSize;
 	auto& [stack, mtx] = FreeBufferChannel[channelIndex];
 
 	mtx->lock();
@@ -118,7 +118,7 @@ bool Message::BufferManager::ReleaseMessageBuffer(char* buffer)
 unsigned long long Message::BufferManager::GetAvailableBufferCount()
 {
 	unsigned long long total = 0;
-	for (int i = 0; i < 10; ++i)
+	for (int i = 0; i < ChannelSize; ++i)
 	{
 		total += FreeBufferChannel[i].first.size();
 	}
@@ -129,6 +129,7 @@ unsigned long long Message::BufferManager::GetAvailableBufferCount()
 void Message::BufferManager::TestBufferwrite()
 {
 	std::cout << "BufferManager::TestBufferwrite() - Writing test pattern to buffer pool." << std::endl;
+	std::cout << "Channel Size: " << ChannelSize << std::endl;
 	for(unsigned int i = 0; i < TotalBufferSize; ++i)
 	{
 		Bufferpool[i] = 'A' + (i % 26);

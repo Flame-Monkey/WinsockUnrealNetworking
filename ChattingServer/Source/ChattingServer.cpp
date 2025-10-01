@@ -146,7 +146,6 @@ ChattingServer::ChattingServer(
 	SocketManagerPool(nullptr), MaxConnection(maxConnection), CurrentConnectionCount(0),
 	WorkerThreadPool(nullptr), MaxWorkerThread(maxWorkerThread), ConnectionLock(nullptr)
 {
-
 }
 
 ChattingServer::~ChattingServer()
@@ -162,6 +161,7 @@ void ChattingServer::Init()
 
 		exit(-1);
 	}
+	CompletionPort = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, (DWORD)MaxWorkerThread);
 
 	MessageBufferManager = new Message::BufferManager(MessageBufferSize, MaxMessageCount, ChannelSize);
 	MessageBufferManager->Init();
@@ -213,8 +213,6 @@ void ChattingServer::InitWSAFunc()
 void ChattingServer::StartServer()
 {
 	std::cout << "Server Starting..." << std::endl;
-
-	CompletionPort = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, (DWORD)MaxWorkerThread);
 
 	ListenSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (ListenSocket == INVALID_SOCKET)
