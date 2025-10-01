@@ -1,3 +1,5 @@
+#pragma once
+
 #include "SystemMessage.h"
 #include "ChattingMessage.h"
 #include "FriendMessage.h"

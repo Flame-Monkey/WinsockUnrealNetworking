@@ -35,7 +35,7 @@ void Message::BufferManager::Init()
 Message::BufferManager::~BufferManager()
 {
 	delete[] Bufferpool;
-	for (int i = 0; i < 10; ++i)
+	for (int i = 0; i < ChannelSize; ++i)
 	{
 		delete FreeBufferChannel[i].second;
 	}
@@ -72,18 +72,19 @@ bool Message::BufferManager::GetBufferCommon(char*& outBuffer, unsigned int& out
 
 bool Message::BufferManager::GetBufferByChannel(char*& outBuffer, unsigned int& outBufferSize, int channelIndex)
 {
-	if (channelIndex < 0 || channelIndex >= 10)
+	if (channelIndex < 0 || channelIndex >= ChannelSize)
 	{
 		return false;
 	}
-
 	auto& [stack, mtx] = FreeBufferChannel[channelIndex];
 	mtx->lock();
+
 	if (stack.empty())
 	{
 		mtx->unlock();
 		return false;
 	}
+
 	outBuffer = stack.top();
 	stack.pop();
 	mtx->unlock();

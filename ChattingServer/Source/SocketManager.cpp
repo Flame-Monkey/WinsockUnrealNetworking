@@ -1,2 +1,56 @@
 #include "SocketManager.h"
+#include <iostream>
 
+SocketManager::SocketManager(ChattingServer* server, Message::BufferManager* bufferManager, int id):
+	Id(id),
+	Socket(INVALID_SOCKET),
+	Server(server),
+	MessageBufferManager(bufferManager), MessageManager(bufferManager, id), 
+	SendContext(nullptr), RecvContext(nullptr), SendBuffer(nullptr), RecvBuffer(nullptr)
+{
+}
+
+void SocketManager::Init()
+{
+	SendContext = new SocketContext;
+	RecvContext = new SocketContext;
+	SendBuffer = new char[BufferLength];
+	RecvBuffer = new char[BufferLength];
+
+	SendContext->Flags = 0;
+	SendContext->ImmediatelyReceivedBytes = 0;
+	SendContext->DataBuf = new WSABUF;
+	SendContext->DataBuf->buf = SendBuffer;
+	SendContext->DataBuf->len = BufferLength;
+	SendContext->LastOp = ESocketOperation::Send;
+	SendContext->Manager = this;
+
+	RecvContext->Flags = 0;
+	RecvContext->ImmediatelyReceivedBytes = 0;
+	RecvContext->DataBuf = new WSABUF;
+	RecvContext->DataBuf->buf = RecvBuffer;
+	RecvContext->DataBuf->len = BufferLength;
+	RecvContext->LastOp = ESocketOperation::Recv;
+	RecvContext->Manager = this;
+}
+
+void SocketManager::SetSocket(SOCKET socket)
+{
+	Socket = socket;
+	RecvContext->Socket = socket;
+	SendContext->Socket = socket;
+}
+
+void SocketManager::ProcessRecv(int Transffered)
+{
+	for (int i = 0; i < Transffered; ++i)
+	{
+		printf("%02x ", RecvContext->DataBuf->buf[i]);
+	}
+	printf("\n");
+
+	//if (MessageManager.TransferByte(RecvContext->DataBuf->buf, Transffered))
+	//{
+	//	Message::Message* message = MessageManager.GetMessageW();
+	//}
+}
