@@ -6,7 +6,7 @@ namespace Message
 	void StructMessage::SetBuffer(MessagePayload payload, EPayloadType type, char* buffer)
 	{
 		// Message Type
-		buffer[0] = EMessageType::StructMessage;
+		buffer[0] = static_cast<char>(EMessageType::StructMessage);
 
 		// flag
 		buffer[1] = 0;

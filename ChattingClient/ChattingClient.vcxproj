@@ -127,6 +127,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Source\ChattingCleint.cpp" />
     <ClCompile Include="Source\main.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -136,6 +137,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="readme.MD" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Source\ChattingClient.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -1,4 +1,5 @@
 #include <iostream>
+#include "ChattingClient.h"
 #include "StructMessage.h"
 #include "BufferManager.h"	
 #include <chrono>
@@ -27,6 +28,15 @@ int main()
 	Message::BufferManager bufferManager(192, 10'000'000, 10);
 	bufferManager.Init();
 	bufferManager.TestBufferwrite();
-	while (true) {}
+
+	ChattingClient client{};
+	client.Init();
+	client.Connect("127.0.0.1", 5000);
+	std::string input;
+	while (true) 
+	{
+		std::cin >> input;
+		client.SendChat(input);
+	}
 	return 0;
 }

@@ -7,7 +7,7 @@
 
 namespace Message
 {
-enum EMessageType : unsigned char
+enum class EMessageType : unsigned char
 {
 	StructMessage = 0,
 };
