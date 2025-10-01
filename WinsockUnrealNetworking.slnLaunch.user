@@ -1,0 +1,20 @@
+[
+  {
+    "Name": "Client",
+    "Projects": [
+      {
+        "Path": "ChattingClient\\ChattingClient.vcxproj",
+        "Action": "StartWithoutDebugging"
+      }
+    ]
+  },
+  {
+    "Name": "Server",
+    "Projects": [
+      {
+        "Path": "ChattingServer\\ChattingServer.vcxproj",
+        "Action": "StartWithoutDebugging"
+      }
+    ]
+  }
+]
