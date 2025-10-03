@@ -46,15 +46,21 @@ private:
 
 	std::queue<Message::StructMessage> ReceivedMessageQueue;
 	std::queue<Message::StructMessage> SendMessageQueue;
-	std::mutex SendLock;
 
-	std::thread worker;
-	std::thread _SendWorker;
+	std::thread IOCPworker;
+	std::thread SendWorker;
+	std::mutex SendFlowMutex;
+	std::condition_variable SendFlowCV;
+	std::mutex SendQueueMutex;
+	std::condition_variable SendQueueCV;
+	bool IsSending = false;
 
-	static void WorkerThread(ChattingClient* client);
+	static void IOCPWorkerThread(ChattingClient* client);
+	static void SendWorkerThread(ChattingClient* client);
 	void StartRecv();
 	void CompleteRecv(int);
 	void CompleteSend();
+	void AddMessageSendqueue(Message::StructMessage message);
 
 public:
 	ChattingClient();
@@ -64,5 +70,4 @@ public:
 	Message::StructMessage GetQueuedMessage();
 	void SendChat(std::string chat);
 
-	static void SendWorker(void* p);
 };

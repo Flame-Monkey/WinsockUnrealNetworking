@@ -125,9 +125,7 @@ bool Message::MessageManager::GetSendBuffer(StructMessage message, char*& outMes
         std::cout << outSize << ' ' << sizeof(StructMessage) << std::endl;
         return false;
     }
-    std::cout << 1;
     std::copy((char*)&message, (char*)&message + message.Size(), outMessageBuffer);
-    std::cout << 2;
     outMessageLength = message.Size();
 
     return true;

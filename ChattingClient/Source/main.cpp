@@ -28,6 +28,7 @@ int main()
 		if (!std::cin.eof())
 		{
 			client.SendChat(input);
+			client.SendChat(input);
 		}
 		else
 		{

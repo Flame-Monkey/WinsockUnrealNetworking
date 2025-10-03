@@ -5,7 +5,7 @@
 #include <thread>
 
 ChattingClient::ChattingClient() :
-	WSAData(), Socket(0), CompletePort(0), Addr(), ReceivedMessageQueue(), SendMessageQueue(), SendLock(),
+	WSAData(), Socket(0), CompletePort(0), Addr(), ReceivedMessageQueue(), SendMessageQueue(),
 	SendBuffer(nullptr), RecvBuffer(nullptr), RecvContext(), SendContext(),
 	MessageBufferManager(192, 10'000'000, 1), MessageManager(&MessageBufferManager, 1)
 {
@@ -40,41 +40,48 @@ void ChattingClient::Init()
 
 	SendContext.DataBuf = new WSABUF[10];
 	SendContext.LastOp = ESocketOperation::Send;
-
-	std::cout << "re" << SendMessageQueue.size();
 }
 
-void ChattingClient::SendWorker(void* p)
+void ChattingClient::SendWorkerThread(ChattingClient* client)
 {
 	char* buffer;
 	unsigned long length;
 	int count = 0;
-	ChattingClient* client = ((ChattingClient*)p);
 	while (true)
 	{
-		if (!client->SendMessageQueue.empty())
+		std::unique_lock<std::mutex> queueLock(client->SendQueueMutex);
+		client->SendQueueCV.wait(queueLock, [client] {
+			return !client->SendMessageQueue.empty();
+			});
+		count = 0;
+		for (int i = 0; i < 10 && !client->SendMessageQueue.empty(); ++i)
 		{
-			//std::cout << client->SendMessageQueue.size();
-			std::cout << client->SendMessageQueue.empty();
-			count = 0;
-			client->SendLock.lock();
-			for (int i = 0; i < 10 && !client->SendMessageQueue.empty(); ++i)
-			{
-				Message::StructMessage m = client->SendMessageQueue.front();
-				client->SendMessageQueue.pop();
-				std::cout << "!!!\n";
-				client->MessageManager.GetSendBuffer(m, buffer, length);
-				std::cout << "???\n";
+			Message::StructMessage m = client->SendMessageQueue.front();
+			client->SendMessageQueue.pop();
+			client->MessageManager.GetSendBuffer(m, buffer, length);
 
-				client->SendContext.DataBuf[i].buf = buffer;
-				client->SendContext.DataBuf[i].len = length;
-				count++;
-			}
+			client->SendContext.DataBuf[i].buf = buffer;
+			client->SendContext.DataBuf[i].len = length;
+			count++;
+		}
+
+		if (count > 0)
+		{
+			std::unique_lock<std::mutex> flowLock(client->SendFlowMutex);
+			client->SendFlowCV.wait(flowLock, [client] {
+				return !client->IsSending;
+				});
+
+			client->IsSending = true;
 			if (WSASend(client->Socket, client->SendContext.DataBuf, count, NULL,
 				0, &client->SendContext.Overlapped, NULL) == SOCKET_ERROR && WSAGetLastError() != ERROR_IO_PENDING)
 			{
 				std::cerr << "WSASend() Error:asd " << WSAGetLastError() << std::endl;
 				exit(-1);
+			}
+			if (count > 1)
+			{
+				std::cout << "multi message sended!!\n";
 			}
 		}
 	}
@@ -98,12 +105,11 @@ void ChattingClient::Connect(std::string ipaddress, short portnum)
 	}
 	StartRecv();
 
-	_SendWorker = std::thread(SendWorker, this);
-
-	worker = std::thread(WorkerThread, this);
+	IOCPworker = std::thread(IOCPWorkerThread, this);
+	SendWorker = std::thread(SendWorkerThread, this);
 }
 
-void ChattingClient::WorkerThread(ChattingClient* client)
+void ChattingClient::IOCPWorkerThread(ChattingClient* client)
 {
 	int bytesTransferred;
 	SocketContext* context = nullptr;
@@ -149,7 +155,9 @@ void ChattingClient::CompleteRecv(int treansffered)
 
 void ChattingClient::CompleteSend()
 {
-	this->SendLock.unlock();
+	auto a = std::unique_lock<std::mutex>(SendFlowMutex);
+	IsSending = false;
+	SendFlowCV.notify_one();
 }
 
 void ChattingClient::Disconnect()
@@ -167,10 +175,16 @@ Message::StructMessage ChattingClient::GetQueuedMessage()
 
 void ChattingClient::SendChat(std::string chat)
 {
-	std::cout << "fuck worlld\n";
 	Message::MessagePayload p;
 	p.chatting = Message::ChattingMessage{ Message::EChattingMessageType::All, "", "", chat };
 	Message::StructMessage m{ p, Message::EPayloadType::Chatting };
 
-	SendMessageQueue.push(m);
+	AddMessageSendqueue(m);
+}
+
+void ChattingClient::AddMessageSendqueue(Message::StructMessage message)
+{
+	auto a = std::unique_lock<std::mutex>(SendQueueMutex);
+	SendMessageQueue.push(message);
+	SendQueueCV.notify_one();
 }
