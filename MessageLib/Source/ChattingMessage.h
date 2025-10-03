@@ -23,6 +23,14 @@ namespace Message
 		char Sender[25];			// 25 bytes
 		char Receiver[25]; 			// 25 bytes
 		char Message[100];			// 100 bytes
+
+		inline static unsigned int ChattingMessageSize = 151;
+		inline static int SenderSize = 25;
+		inline static int ReceiverSize = 25;
+		inline static int ChattingSize = 100;
+
+		ChattingMessage(EChattingMessageType type, std::string sender, std::string receiver, 
+			std::string message);
 	};
 	#pragma pack(pop)
 }

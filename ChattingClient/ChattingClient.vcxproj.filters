@@ -18,7 +18,7 @@
     <ClCompile Include="Source\main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Source\ChattingCleint.cpp">
+    <ClCompile Include="Source\ChattingClient.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

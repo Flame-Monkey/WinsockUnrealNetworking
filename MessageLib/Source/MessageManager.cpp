@@ -115,17 +115,20 @@ void Message::MessageManager::ReleaseMessageBuffer(char* buffer)
     MessageBufferManager->ReleaseMessageBuffer(buffer);
 }
 
-bool Message::MessageManager::GetSendBuffer(MessagePayload payload, EPayloadType type, char*& outMessageBuffer, unsigned long long& outMessageLength)
+bool Message::MessageManager::GetSendBuffer(StructMessage message, char*& outMessageBuffer, unsigned long& outMessageLength)
 {
     unsigned int outSize;
     if (!MessageBufferManager->GetMessageBuffer(outMessageBuffer, outSize, ManagerID)
-        || outSize < sizeof(StructMessage))
+        || outSize < message.Size())
     {
 		std::cerr << "MessageManager::GetSendBuffer() - Failed to get send buffer from BufferManager, or size error." << std::endl;
+        std::cout << outSize << ' ' << sizeof(StructMessage) << std::endl;
         return false;
     }
-
-
+    std::cout << 1;
+    std::copy((char*)&message, (char*)&message + message.Size(), outMessageBuffer);
+    std::cout << 2;
+    outMessageLength = message.Size();
 
     return true;
 }

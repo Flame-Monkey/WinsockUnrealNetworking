@@ -85,7 +85,7 @@ bool Message::BufferManager::GetBufferByChannel(char*& outBuffer, unsigned int& 
 		mtx->unlock();
 		return false;
 	}
-
+	outBufferSize = MessageBufferSize;
 	outBuffer = stack.top();
 	stack.pop();
 	mtx->unlock();

@@ -2,13 +2,13 @@
 #include "ChattingMessage.h"
 #include <iostream>
 #include <chrono>
+#include <thread>
 
 ChattingClient::ChattingClient() :
-	WSAData(), Socket(0), CompletePort(0), Addr(), MessageQueue(), 
+	WSAData(), Socket(0), CompletePort(0), Addr(), ReceivedMessageQueue(), SendMessageQueue(), SendLock(),
 	SendBuffer(nullptr), RecvBuffer(nullptr), RecvContext(), SendContext(),
 	MessageBufferManager(192, 10'000'000, 1), MessageManager(&MessageBufferManager, 1)
 {
-
 }
 
 void ChattingClient::Init()
@@ -30,8 +30,6 @@ void ChattingClient::Init()
 		std::cerr << "Socket Construct Error!!\n";
 		exit(-1);
 	}
-
-	SendBuffer = new char[1000];
 	RecvBuffer = new char[1000];
 
 	CompletePort = CreateIoCompletionPort(INVALID_HANDLE_VALUE, 0, 0, 0);
@@ -40,10 +38,46 @@ void ChattingClient::Init()
 	RecvContext.DataBuf->len = 1000;
 	RecvContext.LastOp = ESocketOperation::Recv;
 
-	SendContext.DataBuf = new WSABUF;
-	SendContext.DataBuf->buf = SendBuffer;
-	SendContext.DataBuf->len = 1000;
-	SendContext.LastOp = ESocketOperation::Recv;
+	SendContext.DataBuf = new WSABUF[10];
+	SendContext.LastOp = ESocketOperation::Send;
+
+	std::cout << "re" << SendMessageQueue.size();
+}
+
+void ChattingClient::SendWorker(void* p)
+{
+	char* buffer;
+	unsigned long length;
+	int count = 0;
+	ChattingClient* client = ((ChattingClient*)p);
+	while (true)
+	{
+		if (!client->SendMessageQueue.empty())
+		{
+			//std::cout << client->SendMessageQueue.size();
+			std::cout << client->SendMessageQueue.empty();
+			count = 0;
+			client->SendLock.lock();
+			for (int i = 0; i < 10 && !client->SendMessageQueue.empty(); ++i)
+			{
+				Message::StructMessage m = client->SendMessageQueue.front();
+				client->SendMessageQueue.pop();
+				std::cout << "!!!\n";
+				client->MessageManager.GetSendBuffer(m, buffer, length);
+				std::cout << "???\n";
+
+				client->SendContext.DataBuf[i].buf = buffer;
+				client->SendContext.DataBuf[i].len = length;
+				count++;
+			}
+			if (WSASend(client->Socket, client->SendContext.DataBuf, count, NULL,
+				0, &client->SendContext.Overlapped, NULL) == SOCKET_ERROR && WSAGetLastError() != ERROR_IO_PENDING)
+			{
+				std::cerr << "WSASend() Error:asd " << WSAGetLastError() << std::endl;
+				exit(-1);
+			}
+		}
+	}
 }
 
 void ChattingClient::Connect(std::string ipaddress, short portnum)
@@ -63,9 +97,13 @@ void ChattingClient::Connect(std::string ipaddress, short portnum)
 		exit(-1);
 	}
 	StartRecv();
+
+	_SendWorker = std::thread(SendWorker, this);
+
+	worker = std::thread(WorkerThread, this);
 }
 
-void ChattingClient::WorkerThread()
+void ChattingClient::WorkerThread(ChattingClient* client)
 {
 	int bytesTransferred;
 	SocketContext* context = nullptr;
@@ -74,18 +112,18 @@ void ChattingClient::WorkerThread()
 
 	while (true)
 	{
-		GetQueuedCompletionStatus(CompletePort, (LPDWORD)&bytesTransferred, (PULONG_PTR)&socket, &lpOverlapped, INFINITE);
+		GetQueuedCompletionStatus(client->CompletePort, (LPDWORD)&bytesTransferred, (PULONG_PTR)&socket, &lpOverlapped, INFINITE);
 		context = (SocketContext*)lpOverlapped;
 
 		switch (context->LastOp)
 		{
 		case ESocketOperation::Recv:
 			std::cout << "Process receive\n";
-			this->CompleteRecv(bytesTransferred);
+			client->CompleteRecv(bytesTransferred);
 			break;
 		case ESocketOperation::Send:
 			std::cout << "Process send\n";
-			CompleteSend();
+			client->CompleteSend();
 			break;
 		default:
 			std::cout << "Unknown Operation" << std::endl;
@@ -111,7 +149,7 @@ void ChattingClient::CompleteRecv(int treansffered)
 
 void ChattingClient::CompleteSend()
 {
-
+	this->SendLock.unlock();
 }
 
 void ChattingClient::Disconnect()
@@ -122,46 +160,17 @@ void ChattingClient::Disconnect()
 
 Message::StructMessage ChattingClient::GetQueuedMessage()
 {
-	return Message::StructMessage();
+	Message::StructMessage ret = ReceivedMessageQueue.front();
+	ReceivedMessageQueue.pop();
+	return ret;
 }
 
 void ChattingClient::SendChat(std::string chat)
 {
-	//std::copy(chat.c_str(), chat.c_str() + chat.length(), SendBuffer);
-	//SendContext.DataBuf->len = chat.length();
-	//if (WSASend(Socket, SendContext.DataBuf, 1, NULL,
-	//	0, &SendContext.Overlapped, NULL) == SOCKET_ERROR && WSAGetLastError() != ERROR_IO_PENDING)
-	//{
-	//			std::cerr << "WSASend() Error: " << WSAGetLastError() << std::endl;
-	//	return;
-	//}
+	std::cout << "fuck worlld\n";
+	Message::MessagePayload p;
+	p.chatting = Message::ChattingMessage{ Message::EChattingMessageType::All, "", "", chat };
+	Message::StructMessage m{ p, Message::EPayloadType::Chatting };
 
-	Message::StructMessage chattingMessage;
-	Message::ChattingMessage c;
-	for (int i = 0; i < 100; ++i)
-	{
-		c.Message[i] = '0';
-	}
-	std::copy(chat.c_str(), chat.c_str() + chat.length(), c.Message);
-	c.Receiver[0] = '1';
-	c.Sender[0] = '0';
-	c.Type = Message::EChattingMessageType::All;
-	chattingMessage.payload.chatting = c;
-	chattingMessage.Type = Message::EPayloadType::Chatting;
-	chattingMessage.header.PayloadLength = 152;
-	chattingMessage.header.Flags = 0;
-	auto now = std::chrono::system_clock::now();
-	chattingMessage.header.TimeStamp = std::chrono::duration_cast<std::chrono::milliseconds>(
-		now.time_since_epoch()
-	).count();
-	chattingMessage.header.Type = Message::EMessageType::StructMessage;
-
-	std::copy((char*) & chattingMessage, (char*)&chattingMessage + 166, SendBuffer);
-	SendContext.DataBuf->len = 166;
-	if (WSASend(Socket, SendContext.DataBuf, 1, NULL,
-		0, &SendContext.Overlapped, NULL) == SOCKET_ERROR && WSAGetLastError() != ERROR_IO_PENDING)
-	{
-		std::cerr << "WSASend() Error: " << WSAGetLastError() << std::endl;
-		return;
-	}
+	SendMessageQueue.push(m);
 }

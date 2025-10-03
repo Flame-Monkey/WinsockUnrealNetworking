@@ -43,9 +43,15 @@ private:
 	bool IsLogin = false;
 	Message::BufferManager MessageBufferManager;
 	Message::MessageManager MessageManager;
-	std::queue<Message::StructMessage> MessageQueue;
 
-	void WorkerThread();
+	std::queue<Message::StructMessage> ReceivedMessageQueue;
+	std::queue<Message::StructMessage> SendMessageQueue;
+	std::mutex SendLock;
+
+	std::thread worker;
+	std::thread _SendWorker;
+
+	static void WorkerThread(ChattingClient* client);
 	void StartRecv();
 	void CompleteRecv(int);
 	void CompleteSend();
@@ -57,4 +63,6 @@ public:
 	void Disconnect();
 	Message::StructMessage GetQueuedMessage();
 	void SendChat(std::string chat);
+
+	static void SendWorker(void* p);
 };

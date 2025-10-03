@@ -39,6 +39,11 @@ union MessagePayload
 	ChattingMessage chatting;	// 151 bytes
 	FriendMessage frendmsg;		// 51 bytes
 	GroupMessage group;			// 76 bytes
+
+	MessagePayload() {}
+	~MessagePayload() {}
+
+	unsigned int Size(EPayloadType type);
 };
 
 // 166 bytes
@@ -46,14 +51,13 @@ union MessagePayload
 struct StructMessage
 {
 public:
-	MessageHeader header; // 14 bytes
+	MessageHeader Header; // 14 bytes
 	EPayloadType Type; 	// 1 byte
-	MessagePayload payload;	// 151 bytes
+	MessagePayload Payload;	// 151 bytes
 
-	static void SetBuffer(MessagePayload payload, EPayloadType type, char* buffer);
+	StructMessage(MessagePayload payload, EPayloadType type);
 
-private:
-	static unsigned long long GetPayloadLength(EPayloadType type);
+	unsigned int Size();
 };
 #pragma pack(pop)
 }

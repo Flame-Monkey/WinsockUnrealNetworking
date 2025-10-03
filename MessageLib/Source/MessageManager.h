@@ -38,6 +38,6 @@ namespace Message
 		bool GetQueuedMessage(StructMessage*& outMessage);
 		void ReleaseMessageBuffer(char* buffer);
 
-		bool GetSendBuffer(MessagePayload payload, EPayloadType type,char*& outMessageBuffer, unsigned long long &outMessageLength);
+		bool GetSendBuffer(StructMessage message, char*& outMessageBuffer, unsigned long &outMessageLength);
 	};
 }

@@ -63,7 +63,7 @@ void SocketManager::ProcessRecv(int Transffered)
 			{
 				std::cout << "WOW!!\n";
 
-				std::cout << message->payload.chatting.Message << std::endl;
+				std::cout << message->Payload.chatting.Message << std::endl;
 			}
 		}
 	}
