@@ -46,40 +46,38 @@ void ChattingClient::SendWorkerThread(ChattingClient* client)
 {
 	char* buffer;
 	unsigned long length;
-	int count = 0;
 	while (true)
 	{
 		std::unique_lock<std::mutex> queueLock(client->SendQueueMutex);
 		client->SendQueueCV.wait(queueLock, [client] {
 			return !client->SendMessageQueue.empty();
 			});
-		count = 0;
-		for (int i = 0; i < 10 && !client->SendMessageQueue.empty(); ++i)
+		for (; client->SendIndex < 10 && !client->SendMessageQueue.empty(); client->SendIndex++)
 		{
 			Message::StructMessage m = client->SendMessageQueue.front();
 			client->SendMessageQueue.pop();
 			client->MessageManager.GetSendBuffer(m, buffer, length);
 
-			client->SendContext.DataBuf[i].buf = buffer;
-			client->SendContext.DataBuf[i].len = length;
-			count++;
+			client->SendContext.DataBuf[client->SendIndex].buf = buffer;
+			client->SendContext.DataBuf[client->SendIndex].len = length;
+			client->BytesToTransfer += length;
 		}
+		queueLock.unlock();
 
-		if (count > 0)
+		if (client->SendIndex > 0)
 		{
 			std::unique_lock<std::mutex> flowLock(client->SendFlowMutex);
 			client->SendFlowCV.wait(flowLock, [client] {
 				return !client->IsSending;
 				});
-
 			client->IsSending = true;
-			if (WSASend(client->Socket, client->SendContext.DataBuf, count, NULL,
+			if (WSASend(client->Socket, client->SendContext.DataBuf, client->SendIndex, NULL,
 				0, &client->SendContext.Overlapped, NULL) == SOCKET_ERROR && WSAGetLastError() != ERROR_IO_PENDING)
 			{
 				std::cerr << "WSASend() Error:asd " << WSAGetLastError() << std::endl;
 				exit(-1);
 			}
-			if (count > 1)
+			if (client->SendIndex > 1)
 			{
 				std::cout << "multi message sended!!\n";
 			}
@@ -129,7 +127,7 @@ void ChattingClient::IOCPWorkerThread(ChattingClient* client)
 			break;
 		case ESocketOperation::Send:
 			std::cout << "Process send\n";
-			client->CompleteSend();
+			client->CompleteSend(bytesTransferred);
 			break;
 		default:
 			std::cout << "Unknown Operation" << std::endl;
@@ -148,14 +146,90 @@ void ChattingClient::StartRecv()
 	}
 }
 
-void ChattingClient::CompleteRecv(int treansffered)
+void ChattingClient::CompleteRecv(int transfered)
 {
-
+	if (MessageManager.TransferByte(RecvBuffer, transfered))
+	{
+		Message::StructMessage* message;
+		while (MessageManager.GetQueuedMessage(message))
+		{
+			ReceivedMessageQueue.push(message);
+		}
+	}
 }
 
-void ChattingClient::CompleteSend()
+void ChattingClient::CompleteSend(int bytesTransferred)
 {
-	auto a = std::unique_lock<std::mutex>(SendFlowMutex);
+	std::unique_lock<std::mutex> a(SendFlowMutex);
+	if (BytesToTransfer == bytesTransferred)
+	{
+		if (BufferForRelease)
+		{
+			std::cout << 1;
+			MessageManager.ReleaseMessageBuffer(BufferForRelease);
+			BufferForRelease = nullptr;
+		}
+		int count = 0;
+		for (int i = 0; i < 10 && count < bytesTransferred; ++i)
+		{
+			MessageManager.ReleaseMessageBuffer(SendContext.DataBuf[i].buf);
+			count += SendContext.DataBuf[i].len;
+		}
+		BytesToTransfer = 0;
+		SendIndex = 0;
+		BufferForRelease = nullptr;
+	}
+	else
+	{
+		std::cout << "!@#!@@#!@#!@#!@!@!!!!!!!!!!!!#@$$$$$$$$$@\n";
+		for (int i = 0; i < 10; ++i)
+		{
+			if (SendContext.DataBuf[i].len <= bytesTransferred)
+			{
+				BytesToTransfer -= SendContext.DataBuf[i].len;
+				bytesTransferred -= SendContext.DataBuf[i].len;
+				if (i == 0 && BufferForRelease)
+				{
+					std::cout << 3;
+
+					MessageManager.ReleaseMessageBuffer(BufferForRelease);
+					BufferForRelease = nullptr;
+				}
+				std::cout << 4;
+
+				MessageManager.ReleaseMessageBuffer(SendContext.DataBuf[i].buf);
+			}
+			else
+			{
+				if (i == 0 && !BufferForRelease)
+				{
+					BufferForRelease = SendContext.DataBuf[0].buf;
+				}
+				else
+				{	
+					if (BufferForRelease)
+					{
+						std::cout << 5;
+
+						MessageManager.ReleaseMessageBuffer(BufferForRelease);
+					}
+					BufferForRelease = SendContext.DataBuf[i].buf;
+				}
+				SendContext.DataBuf[i].buf = SendContext.DataBuf[0].buf + bytesTransferred;
+				SendContext.DataBuf[i].len -= bytesTransferred;
+				BytesToTransfer -= bytesTransferred;
+				int count = 0;
+				for (int j = 0; j < 10 && count < BytesToTransfer; ++j)
+				{
+					SendContext.DataBuf[j].buf = SendContext.DataBuf[j].buf;
+					SendContext.DataBuf[j].len = SendContext.DataBuf[j].len;
+					count += SendContext.DataBuf[j].len;
+					SendIndex = j;
+				}
+				SendIndex++;
+			}
+		}
+	}
 	IsSending = false;
 	SendFlowCV.notify_one();
 }
@@ -166,9 +240,9 @@ void ChattingClient::Disconnect()
 	closesocket(Socket);
 }
 
-Message::StructMessage ChattingClient::GetQueuedMessage()
+Message::StructMessage* ChattingClient::GetQueuedMessage()
 {
-	Message::StructMessage ret = ReceivedMessageQueue.front();
+	Message::StructMessage* ret = ReceivedMessageQueue.front();
 	ReceivedMessageQueue.pop();
 	return ret;
 }

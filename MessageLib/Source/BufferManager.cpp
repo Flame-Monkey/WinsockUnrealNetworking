@@ -97,6 +97,7 @@ bool Message::BufferManager::ReleaseMessageBuffer(char* buffer)
 {
 	if (buffer == nullptr || buffer < Bufferpool || buffer >= Bufferpool + TotalBufferSize)
 	{
+		std::cout << "Gatcha!!\n";
 		return false;
 	}
 

@@ -44,7 +44,7 @@ private:
 	Message::BufferManager MessageBufferManager;
 	Message::MessageManager MessageManager;
 
-	std::queue<Message::StructMessage> ReceivedMessageQueue;
+	std::queue<Message::StructMessage*> ReceivedMessageQueue;
 	std::queue<Message::StructMessage> SendMessageQueue;
 
 	std::thread IOCPworker;
@@ -54,12 +54,15 @@ private:
 	std::mutex SendQueueMutex;
 	std::condition_variable SendQueueCV;
 	bool IsSending = false;
+	int BytesToTransfer = 0;
+	int SendIndex = 0;
+	char* BufferForRelease = nullptr;
 
 	static void IOCPWorkerThread(ChattingClient* client);
 	static void SendWorkerThread(ChattingClient* client);
 	void StartRecv();
 	void CompleteRecv(int);
-	void CompleteSend();
+	void CompleteSend(int);
 	void AddMessageSendqueue(Message::StructMessage message);
 
 public:
@@ -67,7 +70,7 @@ public:
 	void Init();
 	void Connect(std::string ipaddress, short portnum);
 	void Disconnect();
-	Message::StructMessage GetQueuedMessage();
+	Message::StructMessage* GetQueuedMessage();
 	void SendChat(std::string chat);
 
 };
