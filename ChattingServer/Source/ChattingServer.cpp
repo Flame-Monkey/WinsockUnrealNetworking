@@ -143,7 +143,7 @@ ChattingServer::ChattingServer(
 	ListenSocket(), AcceptSocket(), AcceptContext(), MessageBufferManager(nullptr),
 	MessageBufferSize(messageBufferSize), MaxMessageCount(maxMessageCount), ChannelSize(channelSize),
 	SocketManagerPool(nullptr), MaxConnection(maxConnection), CurrentConnectionCount(0),
-	WorkerThreadPool(nullptr), MaxWorkerThread(maxWorkerThread), ConnectionLock(nullptr)
+	WorkerThreadPool(nullptr), MaxWorkerThread(maxWorkerThread), ConnectionLock(nullptr), Messagehandler(nullptr)
 {
 }
 
@@ -165,10 +165,13 @@ void ChattingServer::Init()
 	MessageBufferManager = new Message::BufferManager(MessageBufferSize, MaxMessageCount, ChannelSize);
 	MessageBufferManager->Init();
 
+	Messagehandler = new MessageHandler(10);
+	Messagehandler->Init();
+
 	SocketManagerPool = new SocketManager * [MaxConnection];
 	for (int i = 0; i < MaxConnection; ++i)
 	{
-		SocketManagerPool[i] = new SocketManager{ this, MessageBufferManager, i + 1 };
+		SocketManagerPool[i] = new SocketManager{ this, MessageBufferManager, i + 1 , Messagehandler};
 		SocketManagerPool[i]->Init();
 	}
 	ConnectionLock = new std::mutex();
@@ -178,6 +181,7 @@ void ChattingServer::Init()
 	AcceptContext->DataBuf->buf = new char[(sizeof(SOCKADDR_IN) + 16) * 2];
 
 	WorkerThreadPool = new HANDLE[MaxWorkerThread];
+
 }
 
 void ChattingServer::InitWSAFunc()
@@ -257,6 +261,8 @@ void ChattingServer::StartServer()
 	}
 
 	std::cout << "Server Listening On port " << ntohs(ServerAddr.sin_port) << std::endl;
+
+	Messagehandler->Start();
 }
 
 void ChattingServer::Stop()

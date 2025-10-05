@@ -16,8 +16,7 @@ void ChattingClient::Init()
 	MessageBufferManager.Init();
 	MessageManager.Init();
 
-
-	MessageBufferManager.TestBufferwrite();
+	//MessageBufferManager.TestBufferwrite();
 
 	if (WSAStartup(MAKEWORD(2, 2), &WSAData))
 	{

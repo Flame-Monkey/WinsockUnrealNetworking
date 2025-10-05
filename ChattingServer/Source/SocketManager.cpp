@@ -1,13 +1,12 @@
 #include "SocketManager.h"
 #include <iostream>
 
-SocketManager::SocketManager(ChattingServer* server, Message::BufferManager* bufferManager, int id) :
+SocketManager::SocketManager(ChattingServer* server, Message::BufferManager* bufferManager, int id, MessageHandler* handler):
 	Id(id),
 	Socket(INVALID_SOCKET),
 	Server(server),
 	MessageBufferManager(bufferManager), MessageManager(bufferManager, id),
-	SendContext(nullptr), RecvContext(nullptr), SendBuffer(nullptr), RecvBuffer(nullptr),
-	MessageQueue()
+	SendContext(nullptr), RecvContext(nullptr), SendBuffer(nullptr), RecvBuffer(nullptr), Handler(handler)
 {
 }
 
@@ -57,21 +56,14 @@ void SocketManager::ProcessRecv(int Transffered)
 		Message::StructMessage* message;
 		while (MessageManager.GetQueuedMessage(message))
 		{
-			MessageQueue.push(message);
 			std::cout << "Message Parse Completed!!\n";
-			if (message->Type == Message::EPayloadType::Chatting)
-			{
-				std::cout << "WOW!!\n";
-
-				std::cout << message->Payload.chatting.Message << std::endl;
-			}
-			else if (message->Type == Message::EPayloadType::Friend)
-			{
-				std::cout << "LOL!!\n";
-
-				std::cout << "from: " << message->Payload.friendmsg.Sender << " target: "
-					<< message->Payload.friendmsg.Target << std::endl;
-			}
+			
+			Handler->PushMessage(this, message);
 		}
 	}
+}
+
+void SocketManager::ReleaseMessage(Message::StructMessage* message)
+{
+	MessageManager.ReleaseMessageBuffer((char*)message);
 }

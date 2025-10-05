@@ -64,7 +64,7 @@ private:
 	HANDLE* WorkerThreadPool;
 	unsigned long MaxWorkerThread;
 
-	MessageHandler* MessageHandler;
+	MessageHandler* Messagehandler;
 
 	void CompleteAccept();
 	void CompleteRecv(SocketContext* context, int bytesTransffered);
