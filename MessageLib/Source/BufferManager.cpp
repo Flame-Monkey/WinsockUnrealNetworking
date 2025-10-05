@@ -13,22 +13,22 @@ Message::BufferManager::BufferManager(unsigned int messageSize, unsigned int max
 
 void Message::BufferManager::Init()
 {
-	this->Bufferpool = new char[TotalBufferSize];
+	Bufferpool = new char[TotalBufferSize];
 	std::cout << "BufferManager::Init() - Allocated " << TotalBufferSize << " bytes for buffer pool." << std::endl;
 	std::cout << "Message Size: " << MessageBufferSize << ", Max Message Count: " << MaxMessageSize << std::endl;
 
 	FreeBufferChannel = new std::pair<std::stack<char*>, std::mutex*>[ChannelSize];
 	for (int i = 0; i < ChannelSize; ++i)
 	{
-		this->FreeBufferChannel[i].first = std::stack<char*>();
-		this->FreeBufferChannel[i].second = new std::mutex();
+		FreeBufferChannel[i].first = std::stack<char*>();
+		FreeBufferChannel[i].second = new std::mutex();
 	}
 	
 	for (unsigned int i = 0; i < MaxMessageSize; ++i)
 	{
 		int ChannelIndex = i % ChannelSize;
 		char* BufferAddress = this->Bufferpool + (i * MessageBufferSize);
-		this->FreeBufferChannel[ChannelIndex].first.push(BufferAddress);
+		FreeBufferChannel[ChannelIndex].first.push(BufferAddress);
 	}
 }
 

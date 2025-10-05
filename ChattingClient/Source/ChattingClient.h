@@ -38,7 +38,6 @@ private:
 	SocketContext RecvContext;
 	SocketContext SendContext;
 	sockaddr_in Addr;
-	char* SendBuffer;
 	char* RecvBuffer;
 	bool IsLogin = false;
 	Message::BufferManager MessageBufferManager;
@@ -62,7 +61,7 @@ private:
 	static void SendWorkerThread(ChattingClient* client);
 	void StartRecv();
 	void CompleteRecv(int);
-	void CompleteSend(int);
+	void CompleteSend(unsigned int);
 	void AddMessageSendqueue(Message::StructMessage message);
 
 public:

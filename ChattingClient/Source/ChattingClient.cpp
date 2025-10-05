@@ -6,7 +6,7 @@
 
 ChattingClient::ChattingClient() :
 	WSAData(), Socket(0), CompletePort(0), Addr(), ReceivedMessageQueue(), SendMessageQueue(),
-	SendBuffer(nullptr), RecvBuffer(nullptr), RecvContext(), SendContext(),
+	RecvBuffer(nullptr), RecvContext(), SendContext(),
 	MessageBufferManager(192, 10'000'000, 1), MessageManager(&MessageBufferManager, 1)
 {
 }
@@ -74,7 +74,7 @@ void ChattingClient::SendWorkerThread(ChattingClient* client)
 			if (WSASend(client->Socket, client->SendContext.DataBuf, client->SendIndex, NULL,
 				0, &client->SendContext.Overlapped, NULL) == SOCKET_ERROR && WSAGetLastError() != ERROR_IO_PENDING)
 			{
-				std::cerr << "WSASend() Error:asd " << WSAGetLastError() << std::endl;
+				std::cerr << "WSASend() Error: " << WSAGetLastError() << std::endl;
 				exit(-1);
 			}
 			if (client->SendIndex > 1)
@@ -105,6 +105,15 @@ void ChattingClient::Connect(std::string ipaddress, short portnum)
 
 	IOCPworker = std::thread(IOCPWorkerThread, this);
 	SendWorker = std::thread(SendWorkerThread, this);
+
+	if (WSARecv(Socket, RecvContext.DataBuf, 1, NULL, (LPDWORD) & RecvContext.Flags, &RecvContext.Overlapped, NULL) == SOCKET_ERROR)
+	{
+		if (WSAGetLastError() != ERROR_IO_PENDING)
+		{
+			std::cerr << "WSARecv() Error: " << WSAGetLastError() << std::endl;
+			exit(-1);
+		}
+	}
 }
 
 void ChattingClient::IOCPWorkerThread(ChattingClient* client)
@@ -158,7 +167,7 @@ void ChattingClient::CompleteRecv(int transfered)
 	}
 }
 
-void ChattingClient::CompleteSend(int bytesTransferred)
+void ChattingClient::CompleteSend(unsigned int bytesTransferred)
 {
 	std::unique_lock<std::mutex> a(SendFlowMutex);
 	if (BytesToTransfer == bytesTransferred)
@@ -169,7 +178,7 @@ void ChattingClient::CompleteSend(int bytesTransferred)
 			MessageManager.ReleaseMessageBuffer(BufferForRelease);
 			BufferForRelease = nullptr;
 		}
-		int count = 0;
+		unsigned int count = 0;
 		for (int i = 0; i < 10 && count < bytesTransferred; ++i)
 		{
 			MessageManager.ReleaseMessageBuffer(SendContext.DataBuf[i].buf);
@@ -184,19 +193,15 @@ void ChattingClient::CompleteSend(int bytesTransferred)
 		std::cout << "!@#!@@#!@#!@#!@!@!!!!!!!!!!!!#@$$$$$$$$$@\n";
 		for (int i = 0; i < 10; ++i)
 		{
-			if (SendContext.DataBuf[i].len <= bytesTransferred)
+			if (SendContext.DataBuf[i].len < bytesTransferred)
 			{
 				BytesToTransfer -= SendContext.DataBuf[i].len;
 				bytesTransferred -= SendContext.DataBuf[i].len;
 				if (i == 0 && BufferForRelease)
 				{
-					std::cout << 3;
-
 					MessageManager.ReleaseMessageBuffer(BufferForRelease);
 					BufferForRelease = nullptr;
 				}
-				std::cout << 4;
-
 				MessageManager.ReleaseMessageBuffer(SendContext.DataBuf[i].buf);
 			}
 			else
@@ -227,6 +232,7 @@ void ChattingClient::CompleteSend(int bytesTransferred)
 					SendIndex = j;
 				}
 				SendIndex++;
+				break;
 			}
 		}
 	}
