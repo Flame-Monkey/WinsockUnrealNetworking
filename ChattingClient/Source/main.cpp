@@ -22,6 +22,10 @@ int main()
 	client.Init();
 	client.Connect("127.0.0.1", 5000);
 	std::string input;
+	std::cout << "Input your name" << std::endl;
+	std::cin >> input;
+	client.Login(input);
+	std::cin.ignore();
 	while (true)
 	{
 		std::getline(std::cin, input);

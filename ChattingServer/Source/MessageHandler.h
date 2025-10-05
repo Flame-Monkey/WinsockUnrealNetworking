@@ -9,10 +9,12 @@
 
 struct StructMessage;
 class SocketManager;
+class ChattingServer;
 
 class MessageHandler
 {
 private:
+	ChattingServer* Server;
 	std::mutex HandlerLock;
 	std::condition_variable HandlerCV;
 	std::queue<std::pair<SocketManager*, Message::StructMessage*>> MessageQueue;
@@ -21,7 +23,7 @@ private:
 	int MaxThread;
 
 public:
-	MessageHandler(int);
+	MessageHandler(ChattingServer* server, int);
 	void Init();
 	void Start();
 	static void WorkerThread(MessageHandler* handler, int i);

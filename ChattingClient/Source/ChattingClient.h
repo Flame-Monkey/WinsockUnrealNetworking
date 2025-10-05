@@ -73,4 +73,5 @@ public:
 	void SendChat(std::string chat);
 	void SendFriendRequest(std::string target);
 	void PrintStatus();
+	void Login(std::string name);
 };

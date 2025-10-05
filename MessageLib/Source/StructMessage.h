@@ -40,7 +40,7 @@ union MessagePayload
 	FriendMessage friendmsg;		// 51 bytes
 	GroupMessage group;			// 76 bytes
 
-	MessagePayload() : system() {}
+	MessagePayload() : system(ESystemMessageType::None, "") {}
 	~MessagePayload() {}
 
 	unsigned int Size(EPayloadType type);

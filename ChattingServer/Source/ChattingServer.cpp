@@ -165,7 +165,7 @@ void ChattingServer::Init()
 	MessageBufferManager = new Message::BufferManager(MessageBufferSize, MaxMessageCount, ChannelSize);
 	MessageBufferManager->Init();
 
-	Messagehandler = new MessageHandler(10);
+	Messagehandler = new MessageHandler(this, 10);
 	Messagehandler->Init();
 
 	SocketManagerPool = new SocketManager * [MaxConnection];
@@ -280,4 +280,9 @@ void ChattingServer::PrintStatus()
 	std::cout << "\nChattingServer PrintStatus\n"
 		<< "MaxConnection(SocketManagerSize): " << MaxConnection << std::endl;
 	MessageBufferManager->PrintStatus();
+}
+
+void ChattingServer::ReleaseMessage(Message::StructMessage* message)
+{
+	MessageBufferManager->ReleaseMessageBuffer((char*)message);
 }

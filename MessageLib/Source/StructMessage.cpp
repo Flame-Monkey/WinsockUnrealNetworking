@@ -11,6 +11,8 @@ namespace Message
 			return ChattingMessage::ChattingMessageSize;
 		case EPayloadType::Friend:
 			return FriendMessage::FriendMessageSize;
+		case EPayloadType::System:
+			return SystemMessage::SystemMessageSize;
 		}
 	}
 

@@ -2,8 +2,8 @@
 #include <iostream>
 #include <mutex>
 
-MessageHandler::MessageHandler(int maxThread) :
-	HandlerLock(), HandlerCV(), MessageQueue(), ThreadPool(nullptr), MaxThread(maxThread)
+MessageHandler::MessageHandler(ChattingServer* server, int maxThread):
+	Server(server), HandlerLock(), HandlerCV(), MessageQueue(), ThreadPool(nullptr), MaxThread(maxThread)
 {
 }
 void MessageHandler::Init()
@@ -55,5 +55,13 @@ void MessageHandler::HandleMessage(SocketManager*& manager, Message::StructMessa
 		std::cout << "LOL!!\n";
 		std::cout << "from: " << message->Payload.friendmsg.Sender << " target: "
 			<< message->Payload.friendmsg.Target << std::endl;
+	case Message::EPayloadType::System:
+		if (message->Payload.system.Type == Message::ESystemMessageType::Login)
+		{
+			std::cout << "Great!!\n";
+			std::cout << "Name: " << message->Payload.system.Payload << std::endl;
+		}
 	}
+
+	Server->ReleaseMessage(message);
 }

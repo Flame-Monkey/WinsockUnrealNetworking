@@ -271,6 +271,15 @@ void ChattingClient::SendFriendRequest(std::string target)
 	AddMessageSendqueue(m);
 }
 
+void ChattingClient::Login(std::string name)
+{
+	Message::MessagePayload p;
+	p.system = Message::SystemMessage(Message::ESystemMessageType::Login, name);
+	Message::StructMessage m(p, Message::EPayloadType::System);
+
+	AddMessageSendqueue(m);
+}
+
 void ChattingClient::AddMessageSendqueue(Message::StructMessage message)
 {
 	auto a = std::unique_lock<std::mutex>(SendQueueMutex);

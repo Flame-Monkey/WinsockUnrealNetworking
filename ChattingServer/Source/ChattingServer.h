@@ -85,4 +85,5 @@ public:
 	void StartRecv(SocketContext* context);
 	void Send();
 	void PrintStatus();
+	void ReleaseMessage(Message::StructMessage* message);
 };
