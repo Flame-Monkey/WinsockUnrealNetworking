@@ -37,7 +37,7 @@ union MessagePayload
 {
 	SystemMessage system;	// 101 bytes
 	ChattingMessage chatting;	// 151 bytes
-	FriendMessage frendmsg;		// 51 bytes
+	FriendMessage friendmsg;		// 51 bytes
 	GroupMessage group;			// 76 bytes
 
 	MessagePayload() : system() {}

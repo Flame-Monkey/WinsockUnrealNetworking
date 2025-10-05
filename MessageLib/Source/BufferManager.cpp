@@ -138,3 +138,15 @@ void Message::BufferManager::TestBufferwrite()
 	}
 	std::cout << "Is this using Memory Size: " << TotalBufferSize << " bytes?" << std::endl;
 }
+
+void Message::BufferManager::PrintStatus()
+{
+	std::cout << "\nBufferManager PrintStatus\n";
+	std::cout << "Message Buffer Size: " << MessageBufferSize << std::endl;
+	std::cout << "Max Message Size: " << MaxMessageSize << std::endl;
+	std::cout << "Message buffer pol size: " << TotalBufferSize << std::endl;
+	std::cout << "Current available message buffer: " << GetAvailableBufferCount() << std::endl;
+	std::cout << "Current using mesage buffer: " << MaxMessageSize - GetAvailableBufferCount() << std::endl;
+
+	std::cout << "Channel size: " << ChannelSize << std::endl;
+}

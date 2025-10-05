@@ -4,7 +4,7 @@
 Message::MessageManager::MessageManager(BufferManager* manager, int id):
 	MessageBufferManager(manager),
     ManagerID(id),
-	TransferState(ETransferState::Header),
+	ParsingState(EParsingState::Header),
 	MessageQueue() ,
     BufferDataLength(0),
     QueueMutex()
@@ -35,12 +35,12 @@ bool Message::MessageManager::TransferByte(const char* data, unsigned int size)
 
     while (offset < size)
     {
-        switch (TransferState)
+        switch (ParsingState)
         {
-        case ETransferState::Header:
+        case EParsingState::Header:
             offset += TransferByteToHeader(data + offset, size - offset);
             break;
-        case ETransferState::Payload:
+        case EParsingState::Payload:
             offset += TransferByteToPayload(data + offset, size - offset);
             break;
         }
@@ -59,7 +59,7 @@ unsigned int Message::MessageManager::TransferByteToHeader(const char* data, uns
 
     if (BufferDataLength == sizeof(MessageHeader))
     {
-        TransferState = ETransferState::Payload;
+        ParsingState = EParsingState::Payload;
     }
 
     return transfer;
@@ -81,7 +81,7 @@ unsigned int Message::MessageManager::TransferByteToPayload(const char* data, un
 		QueueMutex.unlock();
 
         BufferDataLength = 0;
-        TransferState = ETransferState::Header;
+        ParsingState = EParsingState::Header;
 
         if (!MessageBufferManager->GetMessageBuffer(Buffer, BufferSize, ManagerID))
         {
@@ -129,4 +129,17 @@ bool Message::MessageManager::GetSendBuffer(StructMessage message, char*& outMes
     outMessageLength = message.Size();
 
     return true;
+}
+
+void Message::MessageManager::PrintStatus()
+{
+    std::cout << "\nMessageManager PrintStatus\n"
+        << "MessageManager ID: " << ManagerID << std::endl
+        << "Current message buffer size: " << BufferSize << std::endl
+        << "Current dataw transfered length: " << BufferDataLength << std::endl
+        << "Queued message: " << MessageQueue.size() << std::endl
+        << "Using message buffer: " << MessageQueue.size() + (Buffer != nullptr ? 1 : 0) << std::endl
+        << "Current parsing: " << (ParsingState == EParsingState::Header ? "Header" : "Payload") << std::endl;
+
+    MessageBufferManager->PrintStatus();
 }

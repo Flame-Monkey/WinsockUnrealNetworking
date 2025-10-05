@@ -25,10 +25,16 @@ int main()
 	while (true)
 	{
 		std::getline(std::cin, input);
+		if (input == "print")
+		{
+			client.PrintStatus();
+			continue;
+		}
 		if (!std::cin.eof())
 		{
 			client.SendChat(input);
-			client.SendChat(input);
+			//client.SendChat(input);
+			client.SendFriendRequest("jinho");
 		}
 		else
 		{

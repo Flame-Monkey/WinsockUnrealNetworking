@@ -9,6 +9,8 @@ namespace Message
 		{
 		case EPayloadType::Chatting:
 			return ChattingMessage::ChattingMessageSize;
+		case EPayloadType::Friend:
+			return FriendMessage::FriendMessageSize;
 		}
 	}
 
@@ -26,7 +28,7 @@ namespace Message
 
 	unsigned int StructMessage::Size()
 	{
-		return 15 + Payload.Size(Type);
+		return 14 + 1 + Payload.Size(Type);
 	}
 }
 

@@ -13,7 +13,16 @@ int main()
 	server.Init();
 	server.StartServer();
 
-	while (true) {}
+	while (true) 
+	{
+		std::string input;
+		std::getline(std::cin, input);
+		if (input == "print")
+		{
+			server.PrintStatus();
+			continue;
+		}
+	}
 
 	return 0;
 }

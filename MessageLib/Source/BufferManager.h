@@ -31,5 +31,6 @@ namespace Message
 		unsigned long long GetAvailableBufferCount();
 
 		void TestBufferwrite();
+		void PrintStatus();
 	};
 }

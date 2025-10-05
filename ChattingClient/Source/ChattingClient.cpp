@@ -16,6 +16,7 @@ void ChattingClient::Init()
 	MessageBufferManager.Init();
 	MessageManager.Init();
 
+
 	MessageBufferManager.TestBufferwrite();
 
 	if (WSAStartup(MAKEWORD(2, 2), &WSAData))
@@ -262,9 +263,28 @@ void ChattingClient::SendChat(std::string chat)
 	AddMessageSendqueue(m);
 }
 
+void ChattingClient::SendFriendRequest(std::string target)
+{
+	Message::MessagePayload p;
+	p.friendmsg = Message::FriendMessage{ Message::EFriendMessageType::Request, "foo", target };
+	Message::StructMessage m{ p, Message::EPayloadType::Friend };
+
+	AddMessageSendqueue(m);
+}
+
 void ChattingClient::AddMessageSendqueue(Message::StructMessage message)
 {
 	auto a = std::unique_lock<std::mutex>(SendQueueMutex);
 	SendMessageQueue.push(message);
 	SendQueueCV.notify_one();
+}
+
+void ChattingClient::PrintStatus()
+{
+	std::cout << "\nChattingClient PrintStatus\n";
+	char address[INET_ADDRSTRLEN];
+	inet_ntop(AF_INET, &Addr.sin_addr, address, sizeof(address));
+	std::cout << "Connected to: " << address << ":" << ntohs(Addr.sin_port) << std::endl;
+
+	MessageManager.PrintStatus();
 }

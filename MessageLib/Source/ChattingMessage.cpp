@@ -9,21 +9,21 @@ Message::ChattingMessage::ChattingMessage(EChattingMessageType type, std::string
 	assert(sizeof(ChattingMessage) == ChattingMessageSize);
 
 	int index = 0;
-	while (index < sender.length() && index < SenderSize)
+	while (index < sender.length() && index < ChattingMessage::SenderSize)
 	{
 		Sender[index] = sender.at(index);
 		index++;
 	}
 
 	index = 0;
-	while (index < receiver.length() && index < ReceiverSize)
+	while (index < receiver.length() && index < ChattingMessage::ReceiverSize)
 	{
 		Receiver[index] = receiver.at(index);
 		index++;
 	}
 
 	index = 0;
-	while (index < message.length() && index < ChattingSize)
+	while (index < message.length() && index < ChattingMessage::ChattingSize)
 	{
 		Message[index] = message.at(index);
 		index++;

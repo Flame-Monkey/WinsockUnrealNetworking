@@ -251,6 +251,7 @@ void ChattingServer::StartServer()
 
 	for (unsigned long i = 0; i < MaxWorkerThread; ++i)
 	{
+		std::cout << "Create IOCP Worker Thread " << i << std::endl;
 		hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)&ChattingServer::IOCPWorkerThread, this, 0, NULL);
 		WorkerThreadPool[i] = hThread;
 	}
@@ -270,5 +271,7 @@ void ChattingServer::Send()
 
 void ChattingServer::PrintStatus()
 {
-
+	std::cout << "\nChattingServer PrintStatus\n"
+		<< "MaxConnection(SocketManagerSize): " << MaxConnection << std::endl;
+	MessageBufferManager->PrintStatus();
 }

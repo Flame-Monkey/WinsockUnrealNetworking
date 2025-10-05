@@ -65,6 +65,13 @@ void SocketManager::ProcessRecv(int Transffered)
 
 				std::cout << message->Payload.chatting.Message << std::endl;
 			}
+			else if (message->Type == Message::EPayloadType::Friend)
+			{
+				std::cout << "LOL!!\n";
+
+				std::cout << "from: " << message->Payload.friendmsg.Sender << " target: "
+					<< message->Payload.friendmsg.Target << std::endl;
+			}
 		}
 	}
 }

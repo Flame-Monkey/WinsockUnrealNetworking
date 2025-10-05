@@ -10,6 +10,7 @@
 #include "StructMessage.h"
 #include "BufferManager.h"
 #include "SocketManager.h"
+#include "MessageHandler.h"
 
 class ChattingServer;
 class SocketManager;
@@ -62,6 +63,8 @@ private:
 
 	HANDLE* WorkerThreadPool;
 	unsigned long MaxWorkerThread;
+
+	MessageHandler* MessageHandler;
 
 	void CompleteAccept();
 	void CompleteRecv(SocketContext* context, int bytesTransffered);

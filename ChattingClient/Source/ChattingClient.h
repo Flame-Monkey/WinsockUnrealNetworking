@@ -71,5 +71,6 @@ public:
 	void Disconnect();
 	Message::StructMessage* GetQueuedMessage();
 	void SendChat(std::string chat);
-
+	void SendFriendRequest(std::string target);
+	void PrintStatus();
 };

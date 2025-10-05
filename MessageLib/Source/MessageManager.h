@@ -7,7 +7,7 @@
 
 namespace Message
 {
-	enum class ETransferState : unsigned char
+	enum class EParsingState : unsigned char
 	{
 		Header = 0,
 		Payload = 1
@@ -20,7 +20,7 @@ namespace Message
 		int ManagerID = -1;
 		std::mutex QueueMutex;
 
-		ETransferState TransferState = ETransferState::Header;
+		EParsingState ParsingState = EParsingState::Header;
 		char* Buffer = nullptr;
 		unsigned int BufferSize = 0;
 		unsigned int BufferDataLength = 0;
@@ -39,5 +39,6 @@ namespace Message
 		void ReleaseMessageBuffer(char* buffer);
 
 		bool GetSendBuffer(StructMessage message, char*& outMessageBuffer, unsigned long &outMessageLength);
+		void PrintStatus();
 	};
 }
