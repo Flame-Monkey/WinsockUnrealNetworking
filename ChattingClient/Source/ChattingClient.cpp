@@ -49,9 +49,12 @@ void ChattingClient::SendWorkerThread(ChattingClient* client)
 	while (true)
 	{
 		std::unique_lock<std::mutex> queueLock(client->SendQueueMutex);
+
 		client->SendQueueCV.wait(queueLock, [client] {
 			return !client->SendMessageQueue.empty();
 			});
+
+
 		for (; client->SendIndex < 10 && !client->SendMessageQueue.empty(); client->SendIndex++)
 		{
 			Message::StructMessage m = client->SendMessageQueue.front();
@@ -67,9 +70,11 @@ void ChattingClient::SendWorkerThread(ChattingClient* client)
 		if (client->SendIndex > 0)
 		{
 			std::unique_lock<std::mutex> flowLock(client->SendFlowMutex);
+
 			client->SendFlowCV.wait(flowLock, [client] {
 				return !client->IsSending;
 				});
+
 			client->IsSending = true;
 			if (WSASend(client->Socket, client->SendContext.DataBuf, client->SendIndex, NULL,
 				0, &client->SendContext.Overlapped, NULL) == SOCKET_ERROR && WSAGetLastError() != ERROR_IO_PENDING)
@@ -106,7 +111,7 @@ void ChattingClient::Connect(std::string ipaddress, short portnum)
 	IOCPworker = std::thread(IOCPWorkerThread, this);
 	SendWorker = std::thread(SendWorkerThread, this);
 
-	if (WSARecv(Socket, RecvContext.DataBuf, 1, NULL, (LPDWORD) & RecvContext.Flags, &RecvContext.Overlapped, NULL) == SOCKET_ERROR)
+	if (WSARecv(Socket, RecvContext.DataBuf, 1, NULL, (LPDWORD)&RecvContext.Flags, &RecvContext.Overlapped, NULL) == SOCKET_ERROR)
 	{
 		if (WSAGetLastError() != ERROR_IO_PENDING)
 		{
@@ -155,14 +160,26 @@ void ChattingClient::StartRecv()
 	}
 }
 
-void ChattingClient::CompleteRecv(int transfered)
+void ChattingClient::CompleteRecv(int transferred)
 {
-	if (MessageManager.TransferByte(RecvBuffer, transfered))
+	for (int i = 0; i < transferred; ++i)
+	{
+		printf("%02x", RecvContext.DataBuf->buf[i]);
+	}
+	if (MessageManager.TransferByte(RecvBuffer, transferred))
 	{
 		Message::StructMessage* message;
 		while (MessageManager.GetQueuedMessage(message))
 		{
 			ReceivedMessageQueue.push(message);
+			if (message->Type == Message::EPayloadType::System)
+			{
+				std::cout << "WOW!!\n";
+				if (message->Payload.system.Type == Message::ESystemMessageType::Login)
+				{
+					std::cout << message->Payload.system.Payload << std::endl;;
+				}
+			}
 		}
 	}
 }
@@ -174,7 +191,6 @@ void ChattingClient::CompleteSend(unsigned int bytesTransferred)
 	{
 		if (BufferForRelease)
 		{
-			std::cout << 1;
 			MessageManager.ReleaseMessageBuffer(BufferForRelease);
 			BufferForRelease = nullptr;
 		}
@@ -210,24 +226,22 @@ void ChattingClient::CompleteSend(unsigned int bytesTransferred)
 				{
 					BufferForRelease = SendContext.DataBuf[0].buf;
 				}
-				else
-				{	
+				else if (1 != 0)
+				{
 					if (BufferForRelease)
 					{
-						std::cout << 5;
-
 						MessageManager.ReleaseMessageBuffer(BufferForRelease);
 					}
 					BufferForRelease = SendContext.DataBuf[i].buf;
 				}
-				SendContext.DataBuf[i].buf = SendContext.DataBuf[0].buf + bytesTransferred;
+				SendContext.DataBuf[i].buf = SendContext.DataBuf[i].buf + bytesTransferred;
 				SendContext.DataBuf[i].len -= bytesTransferred;
 				BytesToTransfer -= bytesTransferred;
 				int count = 0;
-				for (int j = 0; j < 10 && count < BytesToTransfer; ++j)
+				for (int j = 0; i < 10 && count < BytesToTransfer; ++j, ++i)
 				{
-					SendContext.DataBuf[j].buf = SendContext.DataBuf[j].buf;
-					SendContext.DataBuf[j].len = SendContext.DataBuf[j].len;
+					SendContext.DataBuf[j].buf = SendContext.DataBuf[i].buf;
+					SendContext.DataBuf[j].len = SendContext.DataBuf[i].len;
 					count += SendContext.DataBuf[j].len;
 					SendIndex = j;
 				}

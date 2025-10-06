@@ -47,21 +47,57 @@ void MessageHandler::HandleMessage(SocketManager*& manager, Message::StructMessa
 {
 	switch (message->Type)
 	{
+	case Message::EPayloadType::System:
+		HandleSystemMessage(manager, message);
+		break;
 	case Message::EPayloadType::Chatting:
-		std::cout << "WOW!!\n";
-		std::cout << message->Payload.chatting.Message << std::endl;
+		HandleChattingMessage(manager, message);
 		break;
 	case Message::EPayloadType::Friend:
-		std::cout << "LOL!!\n";
-		std::cout << "from: " << message->Payload.friendmsg.Sender << " target: "
-			<< message->Payload.friendmsg.Target << std::endl;
-	case Message::EPayloadType::System:
-		if (message->Payload.system.Type == Message::ESystemMessageType::Login)
-		{
-			std::cout << "Great!!\n";
-			std::cout << "Name: " << message->Payload.system.Payload << std::endl;
-		}
+		HandleFriendMessage(manager, message);
+		break;
 	}
 
 	Server->ReleaseMessage(message);
+}
+
+void MessageHandler::HandleSystemMessage(SocketManager*& manager, Message::StructMessage* message)
+{
+	if (message->Payload.system.Type == Message::ESystemMessageType::Login)
+	{
+		std::cout << "Great!!\n";
+		std::string name(message->Payload.system.Payload);
+		std::cout << "Name: " << name << " name length: " << name.length() << std::endl;
+		if (ConnectedClients.find(name) == ConnectedClients.end())
+		{
+			ConnectedClients.insert({ name, manager });
+
+			Message::MessagePayload p;
+			p.system = Message::SystemMessage(Message::ESystemMessageType::Login, "Success");
+			Message::StructMessage m(p, Message::EPayloadType::System);
+
+			manager->PushMessageSendQueue(m);
+		}
+		else
+		{
+			Message::MessagePayload p;
+			p.system = Message::SystemMessage(Message::ESystemMessageType::Login, "Fail");
+			Message::StructMessage m(p, Message::EPayloadType::System);
+
+			manager->PushMessageSendQueue(m);
+		}
+	}
+}
+
+void MessageHandler::HandleChattingMessage(SocketManager*& manager, Message::StructMessage* message)
+{
+	std::cout << "WOW!!\n";
+	std::cout << message->Payload.chatting.Message << std::endl;
+}
+
+void MessageHandler::HandleFriendMessage(SocketManager*& manager, Message::StructMessage* message)
+{
+	std::cout << "LOL!!\n";
+	std::cout << "from: " << message->Payload.friendmsg.Sender << " target: "
+		<< message->Payload.friendmsg.Target << std::endl;
 }

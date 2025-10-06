@@ -29,7 +29,7 @@ DWORD __stdcall ChattingServer::IOCPWorkerThread(LPVOID serverInstance)
 			break;
 		case ESocketOperation::Send:
 			std::cout << "Process send\n";
-			server->CompleteSend(context->Socket, context);
+			server->CompleteSend(context, bytesTransferred);
 			break;
 		default:
 			std::cout << "Unknown Operation" << std::endl;
@@ -62,6 +62,7 @@ void ChattingServer::CompleteAccept()
 		std::cerr << "Accept Socket Invalid" << std::endl;
 		return;
 	}
+	std::cout << AcceptSocket << std::endl;
 
 	sockaddr* localAddr = nullptr;
 	sockaddr* remoteAddr = nullptr;
@@ -116,20 +117,21 @@ void ChattingServer::StartRecv(SocketContext* context)
 	}
 }
 
-void ChattingServer::CompleteRecv(SocketContext* context, int bytesTransffered)
+void ChattingServer::CompleteRecv(SocketContext* context, int bytesTransferred)
 {
-	if (bytesTransffered == 0)
+	if (bytesTransferred == 0)
 	{
 		return;
 	}
 
-	context->Manager->ProcessRecv(bytesTransffered);
+	context->Manager->ProcessRecv(bytesTransferred);
 
 	StartRecv(context);
 }
 
-void ChattingServer::CompleteSend(SOCKET socket, SocketContext* context)
+void ChattingServer::CompleteSend(SocketContext* context, int bytesTransferred)
 {
+	context->Manager->CompleteSend(bytesTransferred);
 }
 
 void ChattingServer::CloseConnect(SocketContext* context)
@@ -143,7 +145,8 @@ ChattingServer::ChattingServer(
 	ListenSocket(), AcceptSocket(), AcceptContext(), MessageBufferManager(nullptr),
 	MessageBufferSize(messageBufferSize), MaxMessageCount(maxMessageCount), ChannelSize(channelSize),
 	SocketManagerPool(nullptr), MaxConnection(maxConnection), CurrentConnectionCount(0),
-	WorkerThreadPool(nullptr), MaxWorkerThread(maxWorkerThread), ConnectionLock(nullptr), Messagehandler(nullptr)
+	WorkerThreadPool(nullptr), MaxWorkerThread(maxWorkerThread), ConnectionLock(nullptr), Messagehandler(nullptr),
+	SendQueue(), SenderThreadPool(nullptr)
 {
 }
 
@@ -171,7 +174,7 @@ void ChattingServer::Init()
 	SocketManagerPool = new SocketManager * [MaxConnection];
 	for (int i = 0; i < MaxConnection; ++i)
 	{
-		SocketManagerPool[i] = new SocketManager{ this, MessageBufferManager, i + 1 , Messagehandler};
+		SocketManagerPool[i] = new SocketManager{ this, MessageBufferManager, i + 1 , Messagehandler };
 		SocketManagerPool[i]->Init();
 	}
 	ConnectionLock = new std::mutex();
@@ -182,6 +185,7 @@ void ChattingServer::Init()
 
 	WorkerThreadPool = new HANDLE[MaxWorkerThread];
 
+	SenderThreadPool = new std::thread*[MaxSenderThread];
 }
 
 void ChattingServer::InitWSAFunc()
@@ -259,6 +263,11 @@ void ChattingServer::StartServer()
 		hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)&ChattingServer::IOCPWorkerThread, this, 0, NULL);
 		WorkerThreadPool[i] = hThread;
 	}
+	for (unsigned long i = 0; i < MaxSenderThread; ++i)
+	{
+		std::cout << "Create sender thread #" << i << " \n";
+		SenderThreadPool[i] = new std::thread(SendWorker, this);
+	}
 
 	std::cout << "Server Listening On port " << ntohs(ServerAddr.sin_port) << std::endl;
 
@@ -270,9 +279,20 @@ void ChattingServer::Stop()
 
 }
 
-void ChattingServer::Send()
+void ChattingServer::Send(SocketManager* manager)
 {
+	ZeroMemory(&manager->SendContext->Overlapped, sizeof(OVERLAPPED));
 
+	if (WSASend(manager->SendContext->Socket, manager->SendContext->DataBuf, manager->SendIndex, NULL,
+		0, &manager->SendContext->Overlapped, NULL) == SOCKET_ERROR && WSAGetLastError() != ERROR_IO_PENDING)
+	{
+		std::cerr << "WSASend() Error: " << WSAGetLastError() << std::endl;
+		exit(-1);
+	}
+	else
+	{
+		std::cout << "Data Sended\n";
+	}
 }
 
 void ChattingServer::PrintStatus()
@@ -285,4 +305,31 @@ void ChattingServer::PrintStatus()
 void ChattingServer::ReleaseMessage(Message::StructMessage* message)
 {
 	MessageBufferManager->ReleaseMessageBuffer((char*)message);
+}
+
+void ChattingServer::SendWorker(ChattingServer* server)
+{
+	SocketManager* manager;
+	while (true)
+	{
+		auto lock = std::unique_lock<std::mutex>(server->SendLock);
+		if (server->SendQueue.empty())
+		{
+			server->SendCV.wait(lock, [server] {
+				return !server->SendQueue.empty();
+				});
+		}
+		manager = server->SendQueue.front();
+		server->SendQueue.pop();
+		lock.unlock();
+
+		manager->TrySend();
+	}
+}
+
+void ChattingServer::SignalSend(SocketManager* manager)
+{
+	auto lock = std::unique_lock<std::mutex>(SendLock);
+	SendQueue.push(manager);
+	SendCV.notify_one();
 }

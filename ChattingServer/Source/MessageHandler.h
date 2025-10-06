@@ -6,6 +6,7 @@
 #include <thread>
 #include <mutex>
 #include <queue>
+#include <map>
 
 struct StructMessage;
 class SocketManager;
@@ -19,8 +20,15 @@ private:
 	std::condition_variable HandlerCV;
 	std::queue<std::pair<SocketManager*, Message::StructMessage*>> MessageQueue;
 
+	std::map<std::string, SocketManager*> ConnectedClients;
+
 	std::thread* ThreadPool;
 	int MaxThread;
+
+	void HandleSystemMessage(SocketManager*& manager, Message::StructMessage* message);
+	void HandleChattingMessage(SocketManager*& manager, Message::StructMessage* message);
+	void HandleFriendMessage(SocketManager*& manager, Message::StructMessage* message);
+
 
 public:
 	MessageHandler(ChattingServer* server, int);

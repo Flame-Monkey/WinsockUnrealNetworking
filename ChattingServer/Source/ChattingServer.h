@@ -63,12 +63,20 @@ private:
 
 	HANDLE* WorkerThreadPool;
 	unsigned long MaxWorkerThread;
+	std::thread** SenderThreadPool;
+	unsigned long MaxSenderThread = 5;
 
 	MessageHandler* Messagehandler;
 
+	std::queue<SocketManager*> SendQueue;
+	std::mutex SendLock;
+	std::condition_variable SendCV;
+
+	static void SendWorker(ChattingServer* server);
+
 	void CompleteAccept();
-	void CompleteRecv(SocketContext* context, int bytesTransffered);
-	void CompleteSend(SOCKET socket, SocketContext* context);
+	void CompleteRecv(SocketContext* context, int bytesTransferred);
+	void CompleteSend(SocketContext* context, int bytesTransferred);
 	void CloseConnect(SocketContext* context);
 
 public:
@@ -83,7 +91,8 @@ public:
 	void Stop();
 	void StartAccept();
 	void StartRecv(SocketContext* context);
-	void Send();
+	void Send(SocketManager* manager);
 	void PrintStatus();
 	void ReleaseMessage(Message::StructMessage* message);
+	void SignalSend(SocketManager* manager);
 };
