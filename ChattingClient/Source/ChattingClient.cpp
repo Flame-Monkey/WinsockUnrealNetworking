@@ -84,10 +84,6 @@ void ChattingClient::SendWorkerThread(ChattingClient* client)
 				std::cerr << "WSASend() Error: " << WSAGetLastError() << std::endl;
 				exit(-1);
 			}
-			if (client->SendIndex > 1)
-			{
-				std::cout << "multiple messages sended!!\n";
-			}
 		}
 	}
 }
@@ -121,6 +117,7 @@ void ChattingClient::Connect(std::string ipaddress, short portnum)
 			exit(-1);
 		}
 	}
+	IsConnected = true;
 }
 
 void ChattingClient::IOCPWorkerThread(ChattingClient* client)
@@ -138,11 +135,9 @@ void ChattingClient::IOCPWorkerThread(ChattingClient* client)
 		switch (context->LastOp)
 		{
 		case ESocketOperation::Recv:
-			std::cout << "Process receive\n";
 			client->CompleteRecv(bytesTransferred);
 			break;
 		case ESocketOperation::Send:
-			std::cout << "Process send\n";
 			client->CompleteSend(bytesTransferred);
 			break;
 		default:
@@ -168,10 +163,10 @@ void ChattingClient::CompleteRecv(int transferred)
 	{
 		Disconnect();
 	}
-	for (int i = 0; i < transferred; ++i)
-	{
-		printf("%02x", RecvContext.DataBuf->buf[i]);
-	}
+	//for (int i = 0; i < transferred; ++i)
+	//{
+	//	printf("%02x", RecvContext.DataBuf->buf[i]);
+	//}
 	if (MessageManager.TransferByte(RecvBuffer, transferred))
 	{
 		Message::StructMessage* message;
@@ -183,9 +178,27 @@ void ChattingClient::CompleteRecv(int transferred)
 				std::cout << "WOW!!\n";
 				if (message->Payload.system.Type == Message::ESystemMessageType::Login)
 				{
-					std::cout << message->Payload.system.Payload << std::endl;;
+					std::string ret = message->Payload.system.Payload;
+					if (ret == "Success")
+					{
+						IsLogined = true;
+						LoginCV.notify_one();
+					}
 				}
 			}
+			if (message->Type == Message::EPayloadType::Chatting)
+			{
+				std::cout << message->Payload.chatting.Message << std::endl;
+			}
+		}
+	}
+
+	if (WSARecv(Socket, RecvContext.DataBuf, 1, NULL, (LPDWORD)&RecvContext.Flags, &RecvContext.Overlapped, NULL) == SOCKET_ERROR)
+	{
+		if (WSAGetLastError() != ERROR_IO_PENDING)
+		{
+			std::cerr << "WSARecv() Error: " << WSAGetLastError() << std::endl;
+			exit(-1);
 		}
 	}
 }
@@ -300,13 +313,23 @@ void ChattingClient::SendFriendRequest(std::string target)
 	AddMessageSendqueue(m);
 }
 
-void ChattingClient::Login(std::string name)
+bool ChattingClient::Login(std::string name, unsigned int timeout)
 {
 	Message::MessagePayload p;
 	p.system = Message::SystemMessage(Message::ESystemMessageType::Login, name);
 	Message::StructMessage m(p, Message::EPayloadType::System);
 
 	AddMessageSendqueue(m);
+
+	std::unique_lock<std::mutex> lock(LoginLock);
+	if (LoginCV.wait_for(lock, std::chrono::seconds(timeout), [this] {
+		return this->IsLogined;
+		}))
+	{
+		return true;
+	}
+
+	return false;
 }
 void ChattingClient::Heartbeat()
 {

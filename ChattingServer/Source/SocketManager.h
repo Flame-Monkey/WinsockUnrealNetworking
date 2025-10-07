@@ -19,7 +19,6 @@ private:
 	Message::BufferManager* MessageBufferManager = nullptr;
 	Message::MessageManager MessageManager;
 
-	SOCKET Socket;
 	bool IsConnected = false;
 	bool IsSending = false;
 	bool IsInServerSendQueue = false;
@@ -35,6 +34,7 @@ private:
 	void ReleaseSendBuffer();
 
 public:
+	SOCKET Socket;
 	SocketContext* RecvContext;
 	SocketContext* SendContext;
 	char* RecvBuffer;

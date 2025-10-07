@@ -71,11 +71,12 @@ void MessageHandler::HandleSystemMessage(SocketManager*& manager, int sessionNum
 		std::cout << "Great!!\n";
 		name = (message->Payload.system.Payload);
 		std::cout << "Name: " << name << " name length: " << name.length() << std::endl;
-		LoginLock.lock();
 		if (LoginedClients.find(name) == LoginedClients.end())
 		{
 			manager->LastResponse = message->Header.TimeStamp;
+			LoginLock.lock();
 			LoginedClients.insert({ name, {manager, sessionNumber } });
+			LoginLock.unlock();
 			manager->SetClientName(name);
 
 			Message::MessagePayload p;
@@ -91,13 +92,11 @@ void MessageHandler::HandleSystemMessage(SocketManager*& manager, int sessionNum
 			Message::StructMessage m(p, Message::EPayloadType::System);
 
 			manager->PushMessageSendQueue(m, sessionNumber);
-			manager->Disconnect();
 		}
-		LoginLock.unlock();
 		break;
 		
 	case Message::ESystemMessageType::HeartBeat:
-		std::cout << "Hello, heartbeat!!\n";
+		//std::cout << "Hello, heartbeat!!\n";
 		manager->LastResponse = message->Header.TimeStamp;
 		break;
 	}
@@ -107,6 +106,11 @@ void MessageHandler::HandleChattingMessage(SocketManager*& manager, int sessionN
 {
 	std::cout << "WOW!!\n";
 	std::cout << message->Payload.chatting.Message << std::endl;
+	switch (message->Payload.chatting.Type)
+	{
+	case Message::EChattingMessageType::All:
+		BroadcastChatting(message);
+	}
 }
 
 void MessageHandler::HandleFriendMessage(SocketManager*& manager, int sessionNumber, Message::StructMessage* message)
@@ -138,16 +142,28 @@ void MessageHandler::HeartBeatSeeker(MessageHandler* handler)
 		Sleep(1000); // 1 second
 		auto now = std::chrono::system_clock::now();
 		auto millis = duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
-		std::cout << "Wake up!!\n";
+		//std::cout << "Wake up!!\n";
 		for (auto& [name, info] : handler->LoginedClients)
 		{
 			auto& [manager, session] = info;
-			std::cout << manager->LastResponse << std::endl
-				<< millis << std::endl;
+			//std::cout << manager->LastResponse << std::endl
+			//	<< millis << std::endl;
 			if (millis - manager->LastResponse> 1000 * 10)
 			{
 				manager->Disconnect();
 			}
 		}
+	}
+}
+
+void MessageHandler::BroadcastChatting(Message::StructMessage* message)
+{
+	Message::MessagePayload p;
+	p.chatting = Message::ChattingMessage(Message::EChattingMessageType::All, "", "", message->Payload.chatting.Message);
+	Message::StructMessage m(p, Message::EPayloadType::Chatting);
+	for (auto& [name, p] : LoginedClients)
+	{
+		auto& [manager, session] = p;
+		manager->PushMessageSendQueue(m, session);
 	}
 }

@@ -29,6 +29,8 @@ struct SocketContext
 	SOCKET Socket;
 };
 
+class MessageHandler;
+
 class ChattingClient
 {
 private:
@@ -58,7 +60,10 @@ private:
 	char* BufferForRelease = nullptr;
 
 	bool IsConnected = false;
+	bool IsLogined = false;
 	std::thread HeartBeatWorker;
+	std::mutex LoginLock;
+	std::condition_variable LoginCV;
 
 	static void IOCPWorkerThread(ChattingClient* client);
 	static void SendWorkerThread(ChattingClient* client);
@@ -77,6 +82,6 @@ public:
 	void SendChat(std::string chat);
 	void SendFriendRequest(std::string target);
 	void PrintStatus();
-	void Login(std::string name);
+	bool Login(std::string name, unsigned int timeout = 2);
 	void Heartbeat();
 };

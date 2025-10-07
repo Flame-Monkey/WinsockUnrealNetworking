@@ -41,4 +41,6 @@ public:
 	void DisconnectClient(SocketManager* manager, std::string name, int sessionNumber);
 
 	static void HeartBeatSeeker(MessageHandler* handler);
+
+	void BroadcastChatting(Message::StructMessage* message);
 };

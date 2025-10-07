@@ -45,11 +45,11 @@ void SocketManager::SetSocket(SOCKET socket)
 
 void SocketManager::ProcessRecv(int transferred)
 {
-	for (int i = 0; i < transferred; ++i)
-	{
-		printf("%02x", RecvContext->DataBuf->buf[i]);
-	}
-	printf("\n");
+	//for (int i = 0; i < transferred; ++i)
+	//{
+	//	printf("%02x", RecvContext->DataBuf->buf[i]);
+	//}
+	//printf("\n");
 	if (transferred == 0)
 	{
 		Disconnect();
@@ -60,8 +60,7 @@ void SocketManager::ProcessRecv(int transferred)
 		Message::StructMessage* message;
 		while (MessageManager.GetQueuedMessage(message))
 		{
-			std::cout << "Message Parse Completed!!\n";
-
+			//std::cout << "Message Parse Completed!!\n";
 			Handler->PushMessage(this, message, SessionNumber);
 		}
 	}
@@ -89,7 +88,7 @@ void SocketManager::PushMessageSendQueue(Message::StructMessage message, int ses
 
 void SocketManager::TrySend()
 {
-	std::cout << "SocketManager Try Send\n";
+	//std::cout << "SocketManager Try Send\n";
 	auto lock = std::unique_lock<std::mutex>(SendLock);
 	IsInServerSendQueue = false;
 	if (SendMessageQueue.empty() || IsSending)
@@ -108,7 +107,7 @@ void SocketManager::TrySend()
 
 		BytesToTransfer += length;
 	}
-	std::cout << SendIndex << " Messages Sending\n";
+	//std::cout << SendIndex << " Messages Sending\n";
 	IsSending = true;
 	Server->Send(this);
 }

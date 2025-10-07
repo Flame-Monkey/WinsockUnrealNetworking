@@ -24,8 +24,18 @@ int main()
 	std::string input;
 	std::cout << "Input your name" << std::endl;
 	std::cin >> input;
-	client.Login(input);
+	if (client.Login(input))
+	{
+		std::cout << "Login Seccess!!" << std::endl;
+	}
+	else
+	{
+		std::cout << "Login Failed" << std::endl;
+		exit(-1);
+	}
+
 	std::cin.ignore();
+
 	while (true)
 	{
 		std::getline(std::cin, input);
@@ -38,7 +48,7 @@ int main()
 		{
 			client.SendChat(input);
 			//client.SendChat(input);
-			client.SendFriendRequest("jinho");
+			//client.SendFriendRequest("jinho");
 		}
 		else
 		{

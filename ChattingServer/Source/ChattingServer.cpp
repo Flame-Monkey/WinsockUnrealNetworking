@@ -20,15 +20,15 @@ DWORD __stdcall ChattingServer::IOCPWorkerThread(LPVOID serverInstance)
 		switch (context->LastOp)
 		{
 		case ESocketOperation::Accept:
-			std::cout << "Process accept\n";
+			//std::cout << "Process accept\n";
 			server->CompleteAccept();
 			break;
 		case ESocketOperation::Recv:
-			std::cout << "Process receive\n";
+			//std::cout << "Process receive\n";
 			server->CompleteRecv(context, bytesTransferred);
 			break;
 		case ESocketOperation::Send:
-			std::cout << "Process send\n";
+			//std::cout << "Process send\n";
 			server->CompleteSend(context, bytesTransferred);
 			break;
 		default:
@@ -295,10 +295,6 @@ void ChattingServer::Send(SocketManager* manager)
 	{
 		std::cerr << "WSASend() Error: " << WSAGetLastError() << std::endl;
 		exit(-1);
-	}
-	else
-	{
-		std::cout << "Data Sended\n";
 	}
 }
 
