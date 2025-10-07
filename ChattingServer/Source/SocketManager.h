@@ -14,27 +14,31 @@ class SocketManager
 {
 private:
 	int Id;
-	SOCKET Socket;
 	ChattingServer* Server = nullptr;
+	MessageHandler* Handler = nullptr;
 	Message::BufferManager* MessageBufferManager = nullptr;
 	Message::MessageManager MessageManager;
+
+	SOCKET Socket;
+	bool IsConnected = false;
 	bool IsSending = false;
 	bool IsInServerSendQueue = false;
 	char* BufferForRelease;
-
-	MessageHandler* Handler;
 
 	std::queue<Message::StructMessage> SendMessageQueue;
 	std::mutex SendLock;
 	std::condition_variable SendCV;
 	int BytesToTransfer = 0;
 
+	void Disconnect();
+	void ReleaseSendBuffer();
+
 public:
 	SocketContext* RecvContext;
 	SocketContext* SendContext;
 	char* RecvBuffer;
-	unsigned long BufferLength = 1000;
 	int SendIndex = 0;
+	unsigned long BufferLength = 1000;
 
 	SocketManager(ChattingServer* server, Message::BufferManager* bufferManager, int id, MessageHandler* handler);
 	~SocketManager() = default;
@@ -48,4 +52,7 @@ public:
 	void ReleaseMessage(Message::StructMessage* message);
 	void TrySend();
 	void CompleteSend(int bytesTransferred);
+
+	void Reset();
+
 };

@@ -84,7 +84,7 @@ void ChattingClient::SendWorkerThread(ChattingClient* client)
 			}
 			if (client->SendIndex > 1)
 			{
-				std::cout << "multi message sended!!\n";
+				std::cout << "multiple messages sended!!\n";
 			}
 		}
 	}
@@ -306,7 +306,8 @@ void ChattingClient::PrintStatus()
 	std::cout << "\nChattingClient PrintStatus\n";
 	char address[INET_ADDRSTRLEN];
 	inet_ntop(AF_INET, &Addr.sin_addr, address, sizeof(address));
-	std::cout << "Connected to: " << address << ":" << ntohs(Addr.sin_port) << std::endl;
+	std::cout << "Connected to: " << address << ":" << ntohs(Addr.sin_port) << std::endl
+		<< "Current Using Message Buffer: " << ReceivedMessageQueue.size() << std::endl;
 
 	MessageManager.PrintStatus();
 }

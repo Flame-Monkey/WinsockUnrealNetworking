@@ -2,7 +2,7 @@
 
 #include <assert.h>
 Message::SystemMessage::SystemMessage(Message::ESystemMessageType type, std::string payload) :
-	Type(type), Payload('\0')
+	Type(type), Payload{ '\0' }
 {
 	assert(sizeof(SystemMessage) == Message::SystemMessage::SystemMessageSize);
 

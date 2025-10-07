@@ -18,7 +18,6 @@ namespace Message
 	private:
 		BufferManager* MessageBufferManager;
 		int ManagerID = -1;
-		std::mutex QueueMutex;
 
 		EParsingState ParsingState = EParsingState::Header;
 		char* Buffer = nullptr;
@@ -36,9 +35,11 @@ namespace Message
 
 		bool TransferByte(const char* data, unsigned int size);
 		bool GetQueuedMessage(StructMessage*& outMessage);
-		void ReleaseMessageBuffer(char* buffer);
-
 		bool GetSendBuffer(StructMessage message, char*& outMessageBuffer, unsigned long &outMessageLength);
+
+		void ReleaseMessageBuffer(char* buffer);
+		void Reset();
+
 		void PrintStatus();
 	};
 }

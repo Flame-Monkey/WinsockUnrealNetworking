@@ -6,7 +6,7 @@ SocketManager::SocketManager(ChattingServer* server, Message::BufferManager* buf
 	Socket(INVALID_SOCKET),
 	Server(server),
 	MessageBufferManager(bufferManager), MessageManager(bufferManager, id),
-	SendContext(nullptr), RecvContext(nullptr), RecvBuffer(nullptr),
+	SendContext(nullptr), RecvContext(nullptr), RecvBuffer(nullptr), BufferForRelease(nullptr),
 	Handler(handler), SendMessageQueue(), SendLock(), SendCV()
 {
 }
@@ -39,6 +39,7 @@ void SocketManager::SetSocket(SOCKET socket)
 	Socket = socket;
 	RecvContext->Socket = socket;
 	SendContext->Socket = socket;
+	IsConnected = true;
 }
 
 void SocketManager::ProcessRecv(int transferred)
@@ -48,7 +49,11 @@ void SocketManager::ProcessRecv(int transferred)
 		printf("%02x", RecvContext->DataBuf->buf[i]);
 	}
 	printf("\n");
-
+	if (transferred == 0)
+	{
+		Disconnect();
+		return;
+	}
 	if (MessageManager.TransferByte(RecvContext->DataBuf->buf, transferred))
 	{
 		Message::StructMessage* message;
@@ -106,16 +111,22 @@ void SocketManager::TrySend()
 void SocketManager::CompleteSend(int bytesTransferred)
 {
 	std::unique_lock<std::mutex> a(SendLock);
+	if (!IsConnected)
+	{
+		ReleaseSendBuffer();
+		return;
+	}
 	if (BytesToTransfer == bytesTransferred)
 	{
+		int i = 0;
 		if (BufferForRelease)
 		{
-			std::cout << 1;
 			MessageManager.ReleaseMessageBuffer(BufferForRelease);
 			BufferForRelease = nullptr;
+			i = 1;
 		}
 		unsigned int count = 0;
-		for (int i = 0; i < 10 && count < bytesTransferred; ++i)
+		for (; i < 10 && count < bytesTransferred; ++i)
 		{
 			MessageManager.ReleaseMessageBuffer(SendContext->DataBuf[i].buf);
 			count += SendContext->DataBuf[i].len;
@@ -137,6 +148,7 @@ void SocketManager::CompleteSend(int bytesTransferred)
 				{
 					MessageManager.ReleaseMessageBuffer(BufferForRelease);
 					BufferForRelease = nullptr;
+					continue;
 				}
 				MessageManager.ReleaseMessageBuffer(SendContext->DataBuf[i].buf);
 			}
@@ -148,10 +160,6 @@ void SocketManager::CompleteSend(int bytesTransferred)
 				}
 				else if (1 != 0)
 				{
-					if (BufferForRelease)
-					{
-						MessageManager.ReleaseMessageBuffer(BufferForRelease);
-					}
 					BufferForRelease = SendContext->DataBuf[i].buf;
 				}
 				SendContext->DataBuf[i].buf = SendContext->DataBuf[i].buf + bytesTransferred;
@@ -174,5 +182,43 @@ void SocketManager::CompleteSend(int bytesTransferred)
 	if (!SendMessageQueue.empty())
 	{
 		Server->SignalSend(this);
+	}
+}
+
+void SocketManager::Disconnect()
+{
+	MessageManager.Reset();
+	auto lock = std::unique_lock<std::mutex>(SendLock);
+	ReleaseSendBuffer();
+	while (!SendMessageQueue.empty())
+	{
+		SendMessageQueue.pop();
+	}
+	Server->Disconnect(this);
+	Reset();
+	std::cout << "Client Disconnected\n";
+}
+
+void SocketManager::Reset()
+{
+	IsSending = false;
+	IsConnected = false;
+	IsInServerSendQueue = false;
+	BufferForRelease = nullptr;
+	BytesToTransfer = 0;
+}
+
+void SocketManager::ReleaseSendBuffer()
+{
+	int i = 0;
+	if (BufferForRelease)
+	{
+		MessageManager.ReleaseMessageBuffer(BufferForRelease);
+		BufferForRelease = nullptr;
+		++i;
+	}
+	for (; i < SendIndex; ++i)
+	{
+		MessageManager.ReleaseMessageBuffer(SendContext->DataBuf[i].buf);
 	}
 }

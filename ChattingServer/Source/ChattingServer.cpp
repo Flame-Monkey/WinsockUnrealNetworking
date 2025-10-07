@@ -62,8 +62,6 @@ void ChattingServer::CompleteAccept()
 		std::cerr << "Accept Socket Invalid" << std::endl;
 		return;
 	}
-	std::cout << AcceptSocket << std::endl;
-
 	sockaddr* localAddr = nullptr;
 	sockaddr* remoteAddr = nullptr;
 	int localLen = 0, remoteLen = 0;
@@ -105,6 +103,14 @@ void ChattingServer::CompleteAccept()
 	return;
 }
 
+void ChattingServer::Disconnect(SocketManager* manager)
+{
+	ConnectionLock->lock();
+	CurrentConnectionCount--;
+	SocketManagerPool[CurrentConnectionCount];
+	ConnectionLock->unlock();
+}
+
 void ChattingServer::StartRecv(SocketContext* context)
 {
 	ZeroMemory(&context->Overlapped, sizeof(OVERLAPPED));
@@ -119,12 +125,11 @@ void ChattingServer::StartRecv(SocketContext* context)
 
 void ChattingServer::CompleteRecv(SocketContext* context, int bytesTransferred)
 {
+	context->Manager->ProcessRecv(bytesTransferred);
 	if (bytesTransferred == 0)
 	{
 		return;
 	}
-
-	context->Manager->ProcessRecv(bytesTransferred);
 
 	StartRecv(context);
 }
@@ -298,7 +303,8 @@ void ChattingServer::Send(SocketManager* manager)
 void ChattingServer::PrintStatus()
 {
 	std::cout << "\nChattingServer PrintStatus\n"
-		<< "MaxConnection(SocketManagerSize): " << MaxConnection << std::endl;
+		<< "MaxConnection(SocketManagerSize): " << MaxConnection << std::endl
+		<< "Current Connection: " << CurrentConnectionCount << std::endl;
 	MessageBufferManager->PrintStatus();
 }
 
@@ -333,3 +339,4 @@ void ChattingServer::SignalSend(SocketManager* manager)
 	SendQueue.push(manager);
 	SendCV.notify_one();
 }
+
