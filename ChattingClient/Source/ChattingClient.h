@@ -64,6 +64,7 @@ private:
 	std::thread HeartBeatWorker;
 	std::mutex LoginLock;
 	std::condition_variable LoginCV;
+	std::string UserName;
 
 	static void IOCPWorkerThread(ChattingClient* client);
 	static void SendWorkerThread(ChattingClient* client);

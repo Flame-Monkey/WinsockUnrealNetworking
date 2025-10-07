@@ -188,7 +188,8 @@ void ChattingClient::CompleteRecv(int transferred)
 			}
 			if (message->Type == Message::EPayloadType::Chatting)
 			{
-				std::cout << message->Payload.chatting.Message << std::endl;
+				std::cout << message->Payload.chatting.Sender << ": " <<
+					message->Payload.chatting.Message << std::endl;
 			}
 		}
 	}
@@ -294,7 +295,7 @@ void ChattingClient::SendChat(std::string chat)
 		return;
 	}
 	Message::MessagePayload p;
-	p.chatting = Message::ChattingMessage{ Message::EChattingMessageType::All, "", "", chat };
+	p.chatting = Message::ChattingMessage{ Message::EChattingMessageType::All, UserName, "", chat };
 	Message::StructMessage m{ p, Message::EPayloadType::Chatting };
 
 	AddMessageSendqueue(m);
@@ -315,6 +316,7 @@ void ChattingClient::SendFriendRequest(std::string target)
 
 bool ChattingClient::Login(std::string name, unsigned int timeout)
 {
+	UserName = name;
 	Message::MessagePayload p;
 	p.system = Message::SystemMessage(Message::ESystemMessageType::Login, name);
 	Message::StructMessage m(p, Message::EPayloadType::System);

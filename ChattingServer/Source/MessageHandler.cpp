@@ -159,10 +159,14 @@ void MessageHandler::HeartBeatSeeker(MessageHandler* handler)
 void MessageHandler::BroadcastChatting(Message::StructMessage* message)
 {
 	Message::MessagePayload p;
-	p.chatting = Message::ChattingMessage(Message::EChattingMessageType::All, "", "", message->Payload.chatting.Message);
+	p.chatting = Message::ChattingMessage(Message::EChattingMessageType::All, message->Payload.chatting.Sender, "", message->Payload.chatting.Message);
 	Message::StructMessage m(p, Message::EPayloadType::Chatting);
 	for (auto& [name, p] : LoginedClients)
 	{
+		if (name == message->Payload.chatting.Sender)
+		{
+			continue;
+		}
 		auto& [manager, session] = p;
 		manager->PushMessageSendQueue(m, session);
 	}
