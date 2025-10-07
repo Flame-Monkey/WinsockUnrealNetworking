@@ -40,6 +40,7 @@ void SocketManager::SetSocket(SOCKET socket)
 	RecvContext->Socket = socket;
 	SendContext->Socket = socket;
 	IsConnected = true;
+	SessionNumber++;
 }
 
 void SocketManager::ProcessRecv(int transferred)
@@ -61,7 +62,7 @@ void SocketManager::ProcessRecv(int transferred)
 		{
 			std::cout << "Message Parse Completed!!\n";
 
-			Handler->PushMessage(this, message);
+			Handler->PushMessage(this, message, SessionNumber);
 		}
 	}
 }
@@ -71,8 +72,12 @@ void SocketManager::ReleaseMessage(Message::StructMessage* message)
 	MessageManager.ReleaseMessageBuffer((char*)message);
 }
 
-void SocketManager::PushMessageSendQueue(Message::StructMessage message)
+void SocketManager::PushMessageSendQueue(Message::StructMessage message, int session)
 {
+	if (session != SessionNumber)
+	{
+		return;
+	}
 	auto a = std::unique_lock<std::mutex>(SendLock);
 	SendMessageQueue.push(message);
 	if (!IsInServerSendQueue)
@@ -187,6 +192,10 @@ void SocketManager::CompleteSend(int bytesTransferred)
 
 void SocketManager::Disconnect()
 {
+	if (!IsConnected)
+	{
+		return;
+	}
 	MessageManager.Reset();
 	auto lock = std::unique_lock<std::mutex>(SendLock);
 	ReleaseSendBuffer();
@@ -194,9 +203,14 @@ void SocketManager::Disconnect()
 	{
 		SendMessageQueue.pop();
 	}
-	Server->Disconnect(this);
+	Server->Disconnect(Socket);
+	Handler->DisconnectClient(this, ClientName, SessionNumber);
 	Reset();
-	std::cout << "Client Disconnected\n";
+}
+
+void SocketManager::SetClientName(std::string name)
+{
+	ClientName = name;
 }
 
 void SocketManager::Reset()

@@ -57,8 +57,12 @@ private:
 	int SendIndex = 0;
 	char* BufferForRelease = nullptr;
 
+	bool IsConnected = false;
+	std::thread HeartBeatWorker;
+
 	static void IOCPWorkerThread(ChattingClient* client);
 	static void SendWorkerThread(ChattingClient* client);
+	static void HeartBeatThread(ChattingClient* client);
 	void StartRecv();
 	void CompleteRecv(int);
 	void CompleteSend(unsigned int);
@@ -74,4 +78,5 @@ public:
 	void SendFriendRequest(std::string target);
 	void PrintStatus();
 	void Login(std::string name);
+	void Heartbeat();
 };

@@ -7,6 +7,7 @@ namespace Message
 	enum class ESystemMessageType : unsigned char
 	{
 		Login = 0,
+		HeartBeat = 1,
 		None = 0xff,
 	};
 

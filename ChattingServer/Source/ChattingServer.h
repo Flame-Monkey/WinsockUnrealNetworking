@@ -95,5 +95,5 @@ public:
 	void PrintStatus();
 	void ReleaseMessage(Message::StructMessage* message);
 	void SignalSend(SocketManager* manager);
-	void Disconnect(SocketManager* manager);
+	void Disconnect(SOCKET socket);
 };

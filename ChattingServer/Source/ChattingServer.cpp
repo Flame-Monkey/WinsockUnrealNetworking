@@ -103,8 +103,10 @@ void ChattingServer::CompleteAccept()
 	return;
 }
 
-void ChattingServer::Disconnect(SocketManager* manager)
+void ChattingServer::Disconnect(SOCKET socket)
 {
+	shutdown(socket, SD_BOTH);
+	closesocket(socket);
 	ConnectionLock->lock();
 	CurrentConnectionCount--;
 	SocketManagerPool[CurrentConnectionCount];

@@ -44,6 +44,7 @@ int main()
 		{
 			break;
 		}
+		client.Heartbeat();
 	}
 	return 0;
 }

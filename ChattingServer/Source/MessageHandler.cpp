@@ -18,6 +18,7 @@ void MessageHandler::Start()
 		std::cout << "Create new WorkerThread(Handler) #" << i << std::endl;
 		ThreadPool[i] = std::thread(WorkerThread, this, i);
 	}
+	HeartBeatThread = new std::thread(HeartBeatSeeker, this);
 }
 
 void MessageHandler::WorkerThread(MessageHandler* handler, int i)
@@ -28,55 +29,60 @@ void MessageHandler::WorkerThread(MessageHandler* handler, int i)
 		handler->HandlerCV.wait(lock, [handler] {
 			return !handler->MessageQueue.empty();
 			});
-		auto [manager, message] = handler->MessageQueue.front();
+		auto [manager, message, socketSessionNumber] = handler->MessageQueue.front();
 		handler->MessageQueue.pop();
 		lock.unlock();
 
-		handler->HandleMessage(manager, message);
+		handler->HandleMessage(manager, socketSessionNumber, message);
 	}
 }
 
-void MessageHandler::PushMessage(SocketManager* manager, Message::StructMessage* message)
+void MessageHandler::PushMessage(SocketManager* manager, Message::StructMessage* message, int sessionNumber)
 {
 	std::unique_lock<std::mutex> lock(HandlerLock);
-	MessageQueue.emplace(manager, message);
+	MessageQueue.emplace(manager, message, sessionNumber);
 	HandlerCV.notify_one();
 }
 
-void MessageHandler::HandleMessage(SocketManager*& manager, Message::StructMessage* message)
+void MessageHandler::HandleMessage(SocketManager*& manager, int sessionNumber, Message::StructMessage* message)
 {
 	switch (message->Type)
 	{
 	case Message::EPayloadType::System:
-		HandleSystemMessage(manager, message);
+		HandleSystemMessage(manager, sessionNumber, message);
 		break;
 	case Message::EPayloadType::Chatting:
-		HandleChattingMessage(manager, message);
+		HandleChattingMessage(manager, sessionNumber, message);
 		break;
 	case Message::EPayloadType::Friend:
-		HandleFriendMessage(manager, message);
+		HandleFriendMessage(manager, sessionNumber, message);
 		break;
 	}
 
 	Server->ReleaseMessage(message);
 }
 
-void MessageHandler::HandleSystemMessage(SocketManager*& manager, Message::StructMessage* message)
+void MessageHandler::HandleSystemMessage(SocketManager*& manager, int sessionNumber, Message::StructMessage* message)
 {
-	if (message->Payload.system.Type == Message::ESystemMessageType::Login)
+	std::string name;
+	switch(message->Payload.system.Type)
 	{
+	case Message::ESystemMessageType::Login:
 		std::cout << "Great!!\n";
-		std::string name(message->Payload.system.Payload);
+		name = (message->Payload.system.Payload);
 		std::cout << "Name: " << name << " name length: " << name.length() << std::endl;
-		if (ConnectedClients.find(name) == ConnectedClients.end())
+		LoginLock.lock();
+		if (LoginedClients.find(name) == LoginedClients.end())
 		{
-			ConnectedClients.insert({ name, manager });
+			manager->LastResponse = message->Header.TimeStamp;
+			LoginedClients.insert({ name, {manager, sessionNumber } });
+			manager->SetClientName(name);
 
 			Message::MessagePayload p;
 			p.system = Message::SystemMessage(Message::ESystemMessageType::Login, "Success");
 			Message::StructMessage m(p, Message::EPayloadType::System);
 
-			manager->PushMessageSendQueue(m);
+			manager->PushMessageSendQueue(m, sessionNumber);
 		}
 		else
 		{
@@ -84,20 +90,64 @@ void MessageHandler::HandleSystemMessage(SocketManager*& manager, Message::Struc
 			p.system = Message::SystemMessage(Message::ESystemMessageType::Login, "Fail");
 			Message::StructMessage m(p, Message::EPayloadType::System);
 
-			manager->PushMessageSendQueue(m);
+			manager->PushMessageSendQueue(m, sessionNumber);
+			manager->Disconnect();
 		}
+		LoginLock.unlock();
+		break;
+		
+	case Message::ESystemMessageType::HeartBeat:
+		std::cout << "Hello, heartbeat!!\n";
+		manager->LastResponse = message->Header.TimeStamp;
+		break;
 	}
 }
 
-void MessageHandler::HandleChattingMessage(SocketManager*& manager, Message::StructMessage* message)
+void MessageHandler::HandleChattingMessage(SocketManager*& manager, int sessionNumber, Message::StructMessage* message)
 {
 	std::cout << "WOW!!\n";
 	std::cout << message->Payload.chatting.Message << std::endl;
 }
 
-void MessageHandler::HandleFriendMessage(SocketManager*& manager, Message::StructMessage* message)
+void MessageHandler::HandleFriendMessage(SocketManager*& manager, int sessionNumber, Message::StructMessage* message)
 {
 	std::cout << "LOL!!\n";
 	std::cout << "from: " << message->Payload.friendmsg.Sender << " target: "
 		<< message->Payload.friendmsg.Target << std::endl;
+}
+
+void MessageHandler::DisconnectClient(SocketManager* manager, std::string name, int session)
+{
+	LoginLock.lock();
+	if (LoginedClients.find(name) != LoginedClients.end())
+	{
+		if (LoginedClients.at(name).first == manager && LoginedClients.at(name).second == session)
+		{
+			LoginedClients.erase(name);
+			std::cout << "Client " << name << " disconnected!!\n";
+		}
+	}
+	LoginLock.unlock();
+}
+
+void MessageHandler::HeartBeatSeeker(MessageHandler* handler)
+{
+	std::cout << "HeartBeatSeeker working\n";
+	while (true)
+	{
+		Sleep(1000); // 1 second
+		auto now = std::chrono::system_clock::now();
+		auto millis = duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+		std::cout << "Wake up!!\n";
+		for (auto& [name, info] : handler->LoginedClients)
+		{
+			auto& [manager, session] = info;
+			std::cout << manager->LastResponse << std::endl
+				<< millis << std::endl;
+			if (millis - manager->LastResponse> 1000 * 10)
+			{
+				manager->Disconnect();
+			}
+		}
+	}
 }

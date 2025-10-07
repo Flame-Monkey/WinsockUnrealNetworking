@@ -40,6 +40,8 @@ void ChattingClient::Init()
 
 	SendContext.DataBuf = new WSABUF[10];
 	SendContext.LastOp = ESocketOperation::Send;
+
+	HeartBeatWorker = std::thread(HeartBeatThread, this);
 }
 
 void ChattingClient::SendWorkerThread(ChattingClient* client)
@@ -162,6 +164,10 @@ void ChattingClient::StartRecv()
 
 void ChattingClient::CompleteRecv(int transferred)
 {
+	if (transferred == 0)
+	{
+		Disconnect();
+	}
 	for (int i = 0; i < transferred; ++i)
 	{
 		printf("%02x", RecvContext.DataBuf->buf[i]);
@@ -258,6 +264,7 @@ void ChattingClient::Disconnect()
 {
 	shutdown(Socket, SD_BOTH);
 	closesocket(Socket);
+	std::cout << "Server disconnected.\n";
 }
 
 Message::StructMessage* ChattingClient::GetQueuedMessage()
@@ -269,6 +276,10 @@ Message::StructMessage* ChattingClient::GetQueuedMessage()
 
 void ChattingClient::SendChat(std::string chat)
 {
+	if (!IsConnected)
+	{
+		return;
+	}
 	Message::MessagePayload p;
 	p.chatting = Message::ChattingMessage{ Message::EChattingMessageType::All, "", "", chat };
 	Message::StructMessage m{ p, Message::EPayloadType::Chatting };
@@ -278,6 +289,10 @@ void ChattingClient::SendChat(std::string chat)
 
 void ChattingClient::SendFriendRequest(std::string target)
 {
+	if (!IsConnected)
+	{
+		return;
+	}
 	Message::MessagePayload p;
 	p.friendmsg = Message::FriendMessage{ Message::EFriendMessageType::Request, "foo", target };
 	Message::StructMessage m{ p, Message::EPayloadType::Friend };
@@ -289,6 +304,14 @@ void ChattingClient::Login(std::string name)
 {
 	Message::MessagePayload p;
 	p.system = Message::SystemMessage(Message::ESystemMessageType::Login, name);
+	Message::StructMessage m(p, Message::EPayloadType::System);
+
+	AddMessageSendqueue(m);
+}
+void ChattingClient::Heartbeat()
+{
+	Message::MessagePayload p;
+	p.system = Message::SystemMessage(Message::ESystemMessageType::HeartBeat, "hello?");
 	Message::StructMessage m(p, Message::EPayloadType::System);
 
 	AddMessageSendqueue(m);
@@ -310,4 +333,13 @@ void ChattingClient::PrintStatus()
 		<< "Current Using Message Buffer: " << ReceivedMessageQueue.size() << std::endl;
 
 	MessageManager.PrintStatus();
+}
+
+void ChattingClient::HeartBeatThread(ChattingClient* client)
+{
+	while (true)
+	{
+		Sleep(200);
+		client->Heartbeat();
+	}
 }
