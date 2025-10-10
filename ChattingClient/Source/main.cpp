@@ -36,7 +36,8 @@ int main()
 
 	std::cin.ignore();
 
-	while (true)
+	int i = 0;
+	while (i < 3)
 	{
 		std::getline(std::cin, input);
 		if (input == "print")
@@ -54,7 +55,8 @@ int main()
 		{
 			break;
 		}
-		client.Heartbeat();
+		i++;
 	}
+	client.Disconnect();
 	return 0;
 }

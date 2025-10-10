@@ -15,7 +15,6 @@ void ChattingClient::Init()
 {
 	MessageBufferManager.Init();
 	MessageManager.Init();
-
 	//MessageBufferManager.TestBufferwrite();
 
 	if (WSAStartup(MAKEWORD(2, 2), &WSAData))
@@ -40,15 +39,47 @@ void ChattingClient::Init()
 
 	SendContext.DataBuf = new WSABUF[10];
 	SendContext.LastOp = ESocketOperation::Send;
+}
 
-	HeartBeatWorker = std::thread(HeartBeatThread, this);
+ChattingClient::~ChattingClient()
+{
+	delete[] RecvBuffer;
+	delete SendContext.DataBuf;
+	delete RecvContext.DataBuf;
+}
+
+void ChattingClient::IOCPWorkerThread(ChattingClient* client)
+{
+	int bytesTransferred;
+	SocketContext* context = nullptr;
+	LPWSAOVERLAPPED lpOverlapped = NULL;
+	SOCKET socket;
+
+	while (client->IsRunning)
+	{
+		GetQueuedCompletionStatus(client->CompletePort, (LPDWORD)&bytesTransferred, (PULONG_PTR)&socket, &lpOverlapped, INFINITE);
+		context = (SocketContext*)lpOverlapped;
+
+		switch (context->LastOp)
+		{
+		case ESocketOperation::Recv:
+			client->CompleteRecv(bytesTransferred);
+			break;
+		case ESocketOperation::Send:
+			client->CompleteSend(bytesTransferred);
+			break;
+		default:
+			std::cout << "Unknown Operation" << std::endl;
+		}
+	}
+	std::cout << "IOCP terminated\n";
 }
 
 void ChattingClient::SendWorkerThread(ChattingClient* client)
 {
 	char* buffer;
 	unsigned long length;
-	while (true)
+	while (client->IsRunning)
 	{
 		std::unique_lock<std::mutex> queueLock(client->SendQueueMutex);
 
@@ -86,10 +117,24 @@ void ChattingClient::SendWorkerThread(ChattingClient* client)
 			}
 		}
 	}
+	std::cout << "Sending terminated\n";
+}
+
+void ChattingClient::HeartBeatThread(ChattingClient* client)
+{
+	while (client->IsRunning)
+	{
+		Sleep(200);
+		client->Heartbeat();
+	}
+	std::cout << "HeartBeat terminated\n";
 }
 
 void ChattingClient::Connect(std::string ipaddress, short portnum)
 {
+	IsConnected = true;
+	IsRunning = true;
+	Sleep(10);
 	inet_pton(AF_INET, ipaddress.c_str(), &Addr.sin_addr.S_un);
 	Addr.sin_port = htons(portnum);
 	Addr.sin_family = AF_INET;
@@ -108,6 +153,7 @@ void ChattingClient::Connect(std::string ipaddress, short portnum)
 
 	IOCPworker = std::thread(IOCPWorkerThread, this);
 	SendWorker = std::thread(SendWorkerThread, this);
+	HeartBeatWorker = std::thread(HeartBeatThread, this);
 
 	if (WSARecv(Socket, RecvContext.DataBuf, 1, NULL, (LPDWORD)&RecvContext.Flags, &RecvContext.Overlapped, NULL) == SOCKET_ERROR)
 	{
@@ -117,33 +163,18 @@ void ChattingClient::Connect(std::string ipaddress, short portnum)
 			exit(-1);
 		}
 	}
-	IsConnected = true;
 }
 
-void ChattingClient::IOCPWorkerThread(ChattingClient* client)
+void ChattingClient::Disconnect()
 {
-	int bytesTransferred;
-	SocketContext* context = nullptr;
-	LPWSAOVERLAPPED lpOverlapped = NULL;
-	SOCKET socket;
+	IsRunning = false;
 
-	while (true)
-	{
-		GetQueuedCompletionStatus(client->CompletePort, (LPDWORD)&bytesTransferred, (PULONG_PTR)&socket, &lpOverlapped, INFINITE);
-		context = (SocketContext*)lpOverlapped;
+	PostQueuedCompletionStatus(CompletePort, 0, 0, nullptr);
+	SendQueueCV.notify_all();
 
-		switch (context->LastOp)
-		{
-		case ESocketOperation::Recv:
-			client->CompleteRecv(bytesTransferred);
-			break;
-		case ESocketOperation::Send:
-			client->CompleteSend(bytesTransferred);
-			break;
-		default:
-			std::cout << "Unknown Operation" << std::endl;
-		}
-	}
+	shutdown(Socket, SD_BOTH);
+	closesocket(Socket);
+	std::cout << "Server disconnected.\n";
 }
 
 void ChattingClient::StartRecv()
@@ -274,13 +305,6 @@ void ChattingClient::CompleteSend(unsigned int bytesTransferred)
 	SendFlowCV.notify_one();
 }
 
-void ChattingClient::Disconnect()
-{
-	shutdown(Socket, SD_BOTH);
-	closesocket(Socket);
-	std::cout << "Server disconnected.\n";
-}
-
 Message::StructMessage* ChattingClient::GetQueuedMessage()
 {
 	Message::StructMessage* ret = ReceivedMessageQueue.front();
@@ -358,13 +382,4 @@ void ChattingClient::PrintStatus()
 		<< "Current Using Message Buffer: " << ReceivedMessageQueue.size() << std::endl;
 
 	MessageManager.PrintStatus();
-}
-
-void ChattingClient::HeartBeatThread(ChattingClient* client)
-{
-	while (true)
-	{
-		Sleep(200);
-		client->Heartbeat();
-	}
 }

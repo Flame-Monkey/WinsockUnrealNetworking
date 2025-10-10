@@ -59,6 +59,7 @@ private:
 	int SendIndex = 0;
 	char* BufferForRelease = nullptr;
 
+	bool IsRunning = false;
 	bool IsConnected = false;
 	bool IsLogined = false;
 	std::thread HeartBeatWorker;
@@ -76,6 +77,7 @@ private:
 
 public:
 	ChattingClient();
+	~ChattingClient();
 	void Init();
 	void Connect(std::string ipaddress, short portnum);
 	void Disconnect();
