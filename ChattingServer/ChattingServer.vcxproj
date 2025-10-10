@@ -24,6 +24,7 @@
     <ProjectGuid>{ea49cc99-d743-4be7-8b76-874e9e899e7a}</ProjectGuid>
     <RootNamespace>ChattingServer</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>ServerConsole</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">

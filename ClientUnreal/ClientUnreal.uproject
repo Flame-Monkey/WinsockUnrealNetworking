@@ -1,0 +1,22 @@
+{
+	"FileVersion": 3,
+	"EngineAssociation": "{91C564BD-4F87-673B-F7CC-B19BC2F96709}",
+	"Category": "",
+	"Description": "",
+	"Modules": [
+		{
+			"Name": "PracticeUnreal",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	],
+	"Plugins": [
+		{
+			"Name": "ModelingToolsEditorMode",
+			"Enabled": true,
+			"TargetAllowList": [
+				"Editor"
+			]
+		}
+	]
+}

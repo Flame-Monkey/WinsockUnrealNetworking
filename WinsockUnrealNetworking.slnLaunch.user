@@ -3,8 +3,8 @@
     "Name": "Client",
     "Projects": [
       {
-        "Path": "ChattingClient\\ChattingClient.vcxproj",
-        "Action": "StartWithoutDebugging"
+        "Path": "ClientConsole\\ClientConsole.vcxproj",
+        "Action": "Start"
       }
     ]
   },

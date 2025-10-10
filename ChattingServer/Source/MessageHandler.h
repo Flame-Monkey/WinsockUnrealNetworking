@@ -43,4 +43,5 @@ public:
 	static void HeartBeatSeeker(MessageHandler* handler);
 
 	void BroadcastChatting(Message::StructMessage* message);
+	void PrintConnected();
 };

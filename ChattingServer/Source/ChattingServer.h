@@ -92,8 +92,10 @@ public:
 	void StartAccept();
 	void StartRecv(SocketContext* context);
 	void Send(SocketManager* manager);
-	void PrintStatus();
 	void ReleaseMessage(Message::StructMessage* message);
 	void SignalSend(SocketManager* manager);
 	void Disconnect(SOCKET socket);
+
+	void PrintStatus();
+	void PrintConnected();
 };

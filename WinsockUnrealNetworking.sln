@@ -5,7 +5,7 @@ VisualStudioVersion = 17.14.36429.23
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ChattingServer", "ChattingServer\ChattingServer.vcxproj", "{EA49CC99-D743-4BE7-8B76-874E9E899E7A}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ChattingClient", "ChattingClient\ChattingClient.vcxproj", "{B4264CB3-C12D-40AE-A928-C8BB9430A445}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ClientConsole", "ClientConsole\ClientConsole.vcxproj", "{B4264CB3-C12D-40AE-A928-C8BB9430A445}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MessageLib", "MessageLib\MessageLib.vcxproj", "{AFC03CD0-6E67-4803-9E8A-02F196DFF26C}"
 EndProject

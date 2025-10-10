@@ -1,0 +1,156 @@
+﻿#include "BufferManager.h"
+#include <iostream>
+Message::BufferManager::BufferManager(unsigned int messageSize, unsigned int maxMessageSize,
+	unsigned long long channelSize):
+	Bufferpool(nullptr),
+	MessageBufferSize(messageSize),
+	MaxMessageSize(maxMessageSize),
+	TotalBufferSize(messageSize * maxMessageSize),
+	ChannelSize(channelSize),
+	FreeBufferChannel(nullptr)
+{
+}
+
+void Message::BufferManager::Init()
+{
+	Bufferpool = new char[TotalBufferSize];
+	std::cout << "BufferManager::Init() - Allocated " << TotalBufferSize << " bytes for buffer pool." << std::endl;
+	std::cout << "Message Size: " << MessageBufferSize << ", Max Message Count: " << MaxMessageSize << std::endl;
+
+	FreeBufferChannel = new std::pair<std::stack<char*>, std::mutex*>[ChannelSize];
+	for (int i = 0; i < ChannelSize; ++i)
+	{
+		FreeBufferChannel[i].first = std::stack<char*>();
+		FreeBufferChannel[i].second = new std::mutex();
+	}
+	
+	for (unsigned int i = 0; i < MaxMessageSize; ++i)
+	{
+		int ChannelIndex = i % ChannelSize;
+		char* BufferAddress = this->Bufferpool + (i * MessageBufferSize);
+		FreeBufferChannel[ChannelIndex].first.push(BufferAddress);
+	}
+}
+
+Message::BufferManager::~BufferManager()
+{
+	if (Bufferpool)
+	{
+		for (unsigned long long i = 0; i < ChannelSize; ++i)
+		{
+			delete FreeBufferChannel[i].second;
+		}
+		delete[] FreeBufferChannel;
+		delete[] Bufferpool;
+	}
+}
+
+
+bool Message::BufferManager::GetMessageBuffer(char*& outBuffer, unsigned int& outBufferSize, int channelIndex)
+{
+	channelIndex = channelIndex % ChannelSize;
+	if (channelIndex < 0)
+	{
+		return GetBufferCommon(outBuffer, outBufferSize);
+	}
+
+	if(!GetBufferByChannel(outBuffer, outBufferSize, channelIndex))
+	{
+		return GetBufferCommon(outBuffer, outBufferSize);
+	}
+	return true;
+}
+
+
+bool Message::BufferManager::GetBufferCommon(char*& outBuffer, unsigned int& outBufferSize)
+{
+	for (int i = 0; i < ChannelSize; ++i)
+	{
+		if(GetBufferByChannel(outBuffer, outBufferSize, i))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+bool Message::BufferManager::GetBufferByChannel(char*& outBuffer, unsigned int& outBufferSize, int channelIndex)
+{
+	if (channelIndex < 0 || channelIndex >= ChannelSize)
+	{
+		return false;
+	}
+	auto& [stack, mtx] = FreeBufferChannel[channelIndex];
+
+	mtx->lock();
+
+	if (stack.empty())
+	{
+		mtx->unlock();
+		return false;
+	}
+	outBufferSize = MessageBufferSize;
+	outBuffer = stack.top();
+	stack.pop();
+	mtx->unlock();
+
+	return true;
+}
+
+bool Message::BufferManager::ReleaseMessageBuffer(char* buffer)
+{
+	if (buffer == nullptr || buffer < Bufferpool || buffer >= Bufferpool + TotalBufferSize)
+	{
+		std::cout << "Gatcha!!\n";
+		return false;
+	}
+
+	if (buffer - Bufferpool < 0 || buffer >= Bufferpool + MaxMessageSize * MessageBufferSize)
+	{
+		return false;
+	}
+
+	unsigned long long index = (buffer - Bufferpool) / MessageBufferSize;
+
+	unsigned int channelIndex = index % ChannelSize;
+	auto& [stack, mtx] = FreeBufferChannel[channelIndex];
+
+	mtx->lock();
+	stack.push(buffer);
+	mtx->unlock();
+	return true;
+}
+
+unsigned long long Message::BufferManager::GetAvailableBufferCount()
+{
+	unsigned long long total = 0;
+	for (int i = 0; i < ChannelSize; ++i)
+	{
+		total += FreeBufferChannel[i].first.size();
+	}
+
+	return total;
+}
+
+void Message::BufferManager::TestBufferwrite()
+{
+	std::cout << "BufferManager::TestBufferwrite() - Writing test pattern to buffer pool." << std::endl;
+	std::cout << "Channel Size: " << ChannelSize << std::endl;
+	for(unsigned int i = 0; i < TotalBufferSize; ++i)
+	{
+		Bufferpool[i] = 'A' + (i % 26);
+	}
+	std::cout << "Is this using Memory Size: " << TotalBufferSize << " bytes?" << std::endl;
+}
+
+void Message::BufferManager::PrintStatus()
+{
+	std::cout << "\nBufferManager PrintStatus\n";
+	std::cout << "Message Buffer Size: " << MessageBufferSize << std::endl;
+	std::cout << "Max Message Size: " << MaxMessageSize << std::endl;
+	std::cout << "Message buffer pol size: " << TotalBufferSize << std::endl;
+	std::cout << "Current available message buffer: " << GetAvailableBufferCount() << std::endl;
+	std::cout << "Current using mesage buffer: " << MaxMessageSize - GetAvailableBufferCount() << std::endl;
+
+	std::cout << "Channel size: " << ChannelSize << std::endl;
+}

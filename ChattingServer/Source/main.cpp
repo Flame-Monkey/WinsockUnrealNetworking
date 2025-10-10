@@ -22,6 +22,11 @@ int main()
 			server.PrintStatus();
 			continue;
 		}
+		if (input == "list")
+		{
+			server.PrintConnected();
+			continue;
+		}
 	}
 
 	return 0;

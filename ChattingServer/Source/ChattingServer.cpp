@@ -298,14 +298,6 @@ void ChattingServer::Send(SocketManager* manager)
 	}
 }
 
-void ChattingServer::PrintStatus()
-{
-	std::cout << "\nChattingServer PrintStatus\n"
-		<< "MaxConnection(SocketManagerSize): " << MaxConnection << std::endl
-		<< "Current Connection: " << CurrentConnectionCount << std::endl;
-	MessageBufferManager->PrintStatus();
-}
-
 void ChattingServer::ReleaseMessage(Message::StructMessage* message)
 {
 	MessageBufferManager->ReleaseMessageBuffer((char*)message);
@@ -338,3 +330,15 @@ void ChattingServer::SignalSend(SocketManager* manager)
 	SendCV.notify_one();
 }
 
+void ChattingServer::PrintStatus()
+{
+	std::cout << "\nChattingServer PrintStatus\n"
+		<< "MaxConnection(SocketManagerSize): " << MaxConnection << std::endl
+		<< "Current Connection: " << CurrentConnectionCount << std::endl;
+	MessageBufferManager->PrintStatus();
+}
+
+void ChattingServer::PrintConnected()
+{
+	Messagehandler->PrintConnected();
+}

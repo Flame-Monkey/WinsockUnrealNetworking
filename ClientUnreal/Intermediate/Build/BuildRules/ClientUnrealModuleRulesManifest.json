@@ -1,0 +1,8 @@
+{
+	"SourceFiles": [
+		"C:\\Users\\Monkey\\Documents\\WinsockUnrealNetworking\\ClientUnreal\\Source\\PracticeUnreal\\PracticeUnreal.Build.cs",
+		"C:\\Users\\Monkey\\Documents\\WinsockUnrealNetworking\\ClientUnreal\\Source\\PracticeUnreal.Target.cs",
+		"C:\\Users\\Monkey\\Documents\\WinsockUnrealNetworking\\ClientUnreal\\Source\\PracticeUnrealEditor.Target.cs"
+	],
+	"EngineVersion": "5.6.1"
+}

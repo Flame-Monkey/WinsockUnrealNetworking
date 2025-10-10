@@ -172,3 +172,14 @@ void MessageHandler::BroadcastChatting(Message::StructMessage* message)
 		manager->PushMessageSendQueue(m, session);
 	}
 }
+
+void MessageHandler::PrintConnected()
+{
+	std::cout << "Current Logined Clients #" << LoginedClients.size() << '\n'
+		<< "List: ";
+	for (auto [name, info] : LoginedClients)
+	{
+		std::cout << name << '\t';
+	}
+	std::cout << std::endl;
+}
