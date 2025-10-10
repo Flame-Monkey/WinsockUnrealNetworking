@@ -71,12 +71,12 @@ void MessageHandler::HandleSystemMessage(SocketManager*& manager, int sessionNum
 		std::cout << "Great!!\n";
 		name = (message->Payload.system.Payload);
 		std::cout << "Name: " << name << " name length: " << name.length() << std::endl;
+		LoginLock.lock();
+
 		if (LoginedClients.find(name) == LoginedClients.end())
 		{
 			manager->LastResponse = message->Header.TimeStamp;
-			LoginLock.lock();
 			LoginedClients.insert({ name, {manager, sessionNumber } });
-			LoginLock.unlock();
 			manager->SetClientName(name);
 
 			Message::MessagePayload p;
@@ -93,6 +93,7 @@ void MessageHandler::HandleSystemMessage(SocketManager*& manager, int sessionNum
 
 			manager->PushMessageSendQueue(m, sessionNumber);
 		}
+		LoginLock.unlock();
 		break;
 		
 	case Message::ESystemMessageType::HeartBeat:

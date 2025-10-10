@@ -43,6 +43,11 @@ void ChattingClient::Init()
 
 ChattingClient::~ChattingClient()
 {
+	std::cout << "Destriuctor called\n";
+	if (IsRunning)
+	{
+		Disconnect();
+	}
 	delete[] RecvBuffer;
 	delete SendContext.DataBuf;
 	delete RecvContext.DataBuf;
@@ -58,6 +63,10 @@ void ChattingClient::IOCPWorkerThread(ChattingClient* client)
 	while (client->IsRunning)
 	{
 		GetQueuedCompletionStatus(client->CompletePort, (LPDWORD)&bytesTransferred, (PULONG_PTR)&socket, &lpOverlapped, INFINITE);
+		if (!client->IsRunning)
+		{
+			break;
+		}
 		context = (SocketContext*)lpOverlapped;
 
 		switch (context->LastOp)
@@ -86,7 +95,6 @@ void ChattingClient::SendWorkerThread(ChattingClient* client)
 		client->SendQueueCV.wait(queueLock, [client] {
 			return !client->SendMessageQueue.empty();
 			});
-
 
 		for (; client->SendIndex < 10 && !client->SendMessageQueue.empty(); client->SendIndex++)
 		{
@@ -171,6 +179,10 @@ void ChattingClient::Disconnect()
 
 	PostQueuedCompletionStatus(CompletePort, 0, 0, nullptr);
 	SendQueueCV.notify_all();
+
+	HeartBeatWorker.join();
+	SendWorker.join();
+	IOCPworker.join();
 
 	shutdown(Socket, SD_BOTH);
 	closesocket(Socket);
