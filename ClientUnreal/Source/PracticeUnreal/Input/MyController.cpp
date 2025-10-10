@@ -24,7 +24,7 @@ void AMyController::BeginPlay()
 	SetInputMode(InputMode);
 	Client.Init();
 	Client.Connect("127.0.0.1", 5000);
-	Client.Login("Jin");
+	Client.Login("Jin", 20);
 }
 
 void AMyController::Tick(float DeltaTime)

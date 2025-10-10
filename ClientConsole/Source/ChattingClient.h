@@ -41,11 +41,10 @@ private:
 	SocketContext SendContext;
 	sockaddr_in Addr;
 	char* RecvBuffer;
-	bool IsLogin = false;
 	Message::BufferManager MessageBufferManager;
 	Message::MessageManager MessageManager;
 
-	std::queue<Message::StructMessage*> ReceivedMessageQueue;
+	std::queue<Message::StructMessage> ReceivedMessageQueue;
 	std::queue<Message::StructMessage> SendMessageQueue;
 
 	std::thread IOCPworker;
@@ -81,10 +80,14 @@ public:
 	void Init();
 	void Connect(std::string ipaddress, short portnum);
 	void Disconnect();
-	Message::StructMessage* GetQueuedMessage();
+
+	bool Login(std::string name, unsigned int timeout = 5);
 	void SendChat(std::string chat);
 	void SendFriendRequest(std::string target);
+
+	bool IsMessageAvailable();
+	Message::StructMessage GetStructMessage();
+
 	void PrintStatus();
-	bool Login(std::string name, unsigned int timeout = 2);
 	void Heartbeat();
 };

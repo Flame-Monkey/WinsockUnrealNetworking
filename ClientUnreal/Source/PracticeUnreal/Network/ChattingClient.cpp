@@ -48,9 +48,12 @@ ChattingClient::~ChattingClient()
 	{
 		Disconnect();
 	}
-	delete[] RecvBuffer;
-	delete SendContext.DataBuf;
-	delete RecvContext.DataBuf;
+	if (RecvBuffer)
+	{
+		delete[] RecvBuffer;
+		delete SendContext.DataBuf;
+		delete RecvContext.DataBuf;
+	}
 }
 
 void ChattingClient::IOCPWorkerThread(ChattingClient* client)
@@ -140,9 +143,6 @@ void ChattingClient::HeartBeatThread(ChattingClient* client)
 
 void ChattingClient::Connect(std::string ipaddress, short portnum)
 {
-	IsConnected = true;
-	IsRunning = true;
-	Sleep(10);
 	inet_pton(AF_INET, ipaddress.c_str(), &Addr.sin_addr.S_un);
 	Addr.sin_port = htons(portnum);
 	Addr.sin_family = AF_INET;
@@ -152,6 +152,8 @@ void ChattingClient::Connect(std::string ipaddress, short portnum)
 		return;
 	}
 
+	IsConnected = true;
+	IsRunning = true;
 	if (CreateIoCompletionPort((HANDLE)Socket, CompletePort, Socket, 0) == NULL)
 	{
 		std::cerr << "CreateIoCompletionPort() Error: " << WSAGetLastError() << std::endl;
@@ -354,6 +356,10 @@ void ChattingClient::SendFriendRequest(std::string target)
 
 bool ChattingClient::Login(std::string name, unsigned int timeout)
 {
+	if (!IsConnected)
+	{
+		return false;
+	}
 	UserName = name;
 	Message::MessagePayload p;
 	p.system = Message::SystemMessage(Message::ESystemMessageType::Login, name);

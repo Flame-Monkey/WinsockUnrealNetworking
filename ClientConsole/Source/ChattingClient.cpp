@@ -48,9 +48,12 @@ ChattingClient::~ChattingClient()
 	{
 		Disconnect();
 	}
-	delete[] RecvBuffer;
-	delete SendContext.DataBuf;
-	delete RecvContext.DataBuf;
+	if (RecvBuffer)
+	{
+		delete[] RecvBuffer;
+		delete SendContext.DataBuf;
+		delete RecvContext.DataBuf;
+	}
 }
 
 void ChattingClient::IOCPWorkerThread(ChattingClient* client)
@@ -140,9 +143,6 @@ void ChattingClient::HeartBeatThread(ChattingClient* client)
 
 void ChattingClient::Connect(std::string ipaddress, short portnum)
 {
-	IsConnected = true;
-	IsRunning = true;
-	Sleep(10);
 	inet_pton(AF_INET, ipaddress.c_str(), &Addr.sin_addr.S_un);
 	Addr.sin_port = htons(portnum);
 	Addr.sin_family = AF_INET;
@@ -152,6 +152,8 @@ void ChattingClient::Connect(std::string ipaddress, short portnum)
 		return;
 	}
 
+	IsConnected = true;
+	IsRunning = true;
 	if (CreateIoCompletionPort((HANDLE)Socket, CompletePort, Socket, 0) == NULL)
 	{
 		std::cerr << "CreateIoCompletionPort() Error: " << WSAGetLastError() << std::endl;
@@ -206,34 +208,32 @@ void ChattingClient::CompleteRecv(int transferred)
 	{
 		Disconnect();
 	}
-	//for (int i = 0; i < transferred; ++i)
-	//{
-	//	printf("%02x", RecvContext.DataBuf->buf[i]);
-	//}
 	if (MessageManager.TransferByte(RecvBuffer, transferred))
 	{
 		Message::StructMessage* message;
 		while (MessageManager.GetQueuedMessage(message))
 		{
-			ReceivedMessageQueue.push(message);
 			if (message->Type == Message::EPayloadType::System)
 			{
-				std::cout << "WOW!!\n";
 				if (message->Payload.system.Type == Message::ESystemMessageType::Login)
 				{
 					std::string ret = message->Payload.system.Payload;
 					if (ret == "Success")
 					{
 						IsLogined = true;
-						LoginCV.notify_one();
 					}
+					LoginCV.notify_one();
 				}
 			}
 			if (message->Type == Message::EPayloadType::Chatting)
 			{
+				Message::StructMessage newMessage(*message);
+				ReceivedMessageQueue.push(newMessage);
 				std::cout << message->Payload.chatting.Sender << ": " <<
 					message->Payload.chatting.Message << std::endl;
 			}
+
+			MessageManager.ReleaseMessageBuffer((char*)message);
 		}
 	}
 
@@ -246,7 +246,6 @@ void ChattingClient::CompleteRecv(int transferred)
 		}
 	}
 }
-
 void ChattingClient::CompleteSend(unsigned int bytesTransferred)
 {
 	std::unique_lock<std::mutex> a(SendFlowMutex);
@@ -317,9 +316,14 @@ void ChattingClient::CompleteSend(unsigned int bytesTransferred)
 	SendFlowCV.notify_one();
 }
 
-Message::StructMessage* ChattingClient::GetQueuedMessage()
+bool ChattingClient::IsMessageAvailable()
 {
-	Message::StructMessage* ret = ReceivedMessageQueue.front();
+	return !ReceivedMessageQueue.empty();
+}
+
+Message::StructMessage ChattingClient::GetStructMessage()
+{
+	Message::StructMessage ret = ReceivedMessageQueue.front();
 	ReceivedMessageQueue.pop();
 	return ret;
 }
@@ -352,6 +356,10 @@ void ChattingClient::SendFriendRequest(std::string target)
 
 bool ChattingClient::Login(std::string name, unsigned int timeout)
 {
+	if (!IsConnected)
+	{
+		return false;
+	}
 	UserName = name;
 	Message::MessagePayload p;
 	p.system = Message::SystemMessage(Message::ESystemMessageType::Login, name);
@@ -360,14 +368,8 @@ bool ChattingClient::Login(std::string name, unsigned int timeout)
 	AddMessageSendqueue(m);
 
 	std::unique_lock<std::mutex> lock(LoginLock);
-	if (LoginCV.wait_for(lock, std::chrono::seconds(timeout), [this] {
-		return this->IsLogined;
-		}))
-	{
-		return true;
-	}
-
-	return false;
+	LoginCV.wait_for(lock, std::chrono::seconds(timeout));
+	return IsLogined;
 }
 void ChattingClient::Heartbeat()
 {
